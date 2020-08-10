@@ -27,10 +27,15 @@
 (put 'upcase-region 'disabled nil)
 (put 'downcase-region 'disabled nil)
 
+;; scroll bar not useful as its behaviour is weird(too lazy to learn), and there's a percentage to show how vertical position so...
+(toggle-scroll-bar -1)
+(display-time-mode 1)
+(tool-bar-mode -1)
+(menu-bar-mode -1)
 
-;;All package-related stuff goes under here---------------------------------
+;; All package-related stuff goes under here---------------------------------
 
-;;Straight.el bootstrap code
+;; Straight.el bootstrap code
 (defvar bootstrap-version)
 (let ((bootstrap-file
        (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
@@ -44,17 +49,15 @@
       (eval-print-last-sexp)))
   (load bootstrap-file nil 'nomessage))
 
-;;makes each use-package form also invoke straight.el to install the package, unless otherwise specified
+;; makes each use-package form also invoke straight.el to install the package, unless otherwise specified
 (setq straight-use-package-by-default t)
 
-;;install use-package
+;; install use-package
 (straight-use-package 'use-package)
 
 
-;;This code is kept here to enable me to browse the packages
-
-;; Load Emacs 24's package system. Add MELPA repository.
-;;(package-initialize)
+;; This use-package.el code is kept to enable browsing of MELPA packages.
+;; (package-initialize)
 (require 'package)
 (add-to-list
  'package-archives
@@ -107,6 +110,9 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(custom-safe-themes
+   (quote
+    ("bf66464043eeb31ee08a92de73d786787ecadf9cd3a1a08a886fe0052a35841a" default)))
  '(org-agenda-custom-commands
    (quote
     (("c" "To-dos of Noted Life"
@@ -143,3 +149,4 @@
    ;; Your init file should contain only one such instance.
    ;; If there is more than one, they won't work right.
    '(default ((t (:family "mononoki NF" :foundry "outline" :slant normal :weight normal :height 120 :width normal))))))
+
