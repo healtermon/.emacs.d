@@ -28,11 +28,13 @@
 (put 'upcase-region 'disabled nil)
 (put 'downcase-region 'disabled nil)
 
-;; scroll bar not useful as its behaviour is weird(too lazy to learn), and there's a percentage to show how vertical position so...
+;; scroll bar not useful as its behaviour is weird(too lazy to learn), and there's a percentage to show vertical position so...
 (if (fboundp 'scroll-bar-mode) (scroll-bar-mode -1))
 (display-time-mode 1)
 (if (fboundp 'tool-bar-mode) (tool-bar-mode -1))
 (menu-bar-mode -1)
+
+(toggle-frame-fullscreen)
 
 ;; All package-related stuff goes under here---------------------------------
 
@@ -105,6 +107,14 @@
 		    "DONE(d)"))))
 ;;org-agenda-custom-commands is under custom-set-variables for convenience; the "Easy Customisation" updates to there. 
 
+(use-package geiser)
+(use-package paredit
+  :hook ((emacs-lisp-mode
+	  lisp-interaction-mode
+	  ielm-mode
+	  lisp-mode
+	  eval-expression-minibuffer-setup
+	  scheme-mode) . paredit-mode))
 
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
