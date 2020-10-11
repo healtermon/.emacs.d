@@ -36,6 +36,9 @@
 
 (toggle-frame-fullscreen)
 
+;; set buffer to auto-update when the associated file is written to externally, and set it to update in 1s
+(global-auto-revert-mode 1)
+(setq auto-revert-interval 1)
 ;; All package-related stuff goes under here---------------------------------
 
 ;; Straight.el bootstrap code
@@ -78,6 +81,8 @@
    ((string-equal system-name "ASSES-UX310UQK")
     (xah-fly-keys-set-layout 'colemak-mod-dh))
    ((string-equal system-name "localhost")
+    (xah-fly-keys-set-layout 'qwerty))
+   ((string-equal system-name "DURIAN")
     (xah-fly-keys-set-layout 'qwerty))) 
   (xah-fly-keys 1))
 
