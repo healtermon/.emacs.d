@@ -120,15 +120,13 @@
 ;;org-agenda-custom-commands is under custom-set-variables for convenience; the "Easy Customisation" updates to there.
 
 ;;org roam
-(if (string-equal system-name "ASSES-UX310UQK")
-    (add-to-list 'exec-path "~/bin/sqlite-tools-win32-x86-3340100"))
-(if (string-equal system-name "localhost")
-      (setq org-roam-directory "~/storage/shared/stuff/notes/zk")
-  (setq org-roam-directory "~/stuff/notes/zk"))
-(if (string-equal system-name "ASSES-UX310UQK")
-      (setq org-roam-graph-executable "~/bin/Graphviz/bin/dot.exe")
-      (setq org-roam-graph-viewer "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe"))
 (use-package org-roam
+  :init
+  (if (string-equal system-name "ASSES-UX310UQK")
+      (add-to-list 'exec-path "~/bin/sqlite-tools-win32-x86-3340100"))
+  (if (string-equal system-name "localhost")
+      (setq org-roam-directory "~/storage/shared/stuff/notes/zk")
+    (setq org-roam-directory "~/stuff/notes/zk"))  
   :custom
   (org-roam-dailies-directory "daily/")
   :bind (:map org-roam-mode-map
@@ -144,6 +142,10 @@
 	      (("C-c n i" . org-roam-insert))
 	      (("C-c n I" . org-roam-insert-immediate)))
   :config
+  (cond ((string-equal system-name "ASSES-UX310UQK")
+	 (setq org-roam-graph-executable "~/bin/Graphviz/bin/dot.exe")
+	 (setq org-roam-graph-viewer "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe"))
+	(1 nil))
   (setq org-roam-db-update-method 'immediate)
   (setq org-roam-capture-templates
 	'(("d" "default without ${slug}" plain
