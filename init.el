@@ -122,13 +122,15 @@
 ;;org roam
 (if (string-equal system-name "ASSES-UX310UQK")
     (add-to-list 'exec-path "~/bin/sqlite-tools-win32-x86-3340100"))
+(if (string-equal system-name "localhost")
+      (setq org-roam-directory "~/storage/shared/stuff/notes/zk")
+  (setq org-roam-directory "~/stuff/notes/zk"))
+(if (string-equal system-name "ASSES-UX310UQK")
+      (setq org-roam-graph-executable "~/bin/Graphviz/bin/dot.exe")
+      (setq org-roam-graph-viewer "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe"))
 (use-package org-roam
   :custom
-  (org-roam-directory "~/stuff/notes/zk")
   (org-roam-dailies-directory "daily/")
-  (if (string-equal system-name "ASSES-UX310UQK")
-      (org-roam-graph-executable "~/bin/Graphviz/bin/dot.exe")
-      (org-roam-graph-viewer "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe"))
   :bind (:map org-roam-mode-map
 	      (("C-c n l" . org-roam)
 	       ("C-c n f" . org-roam-find-file)
