@@ -39,6 +39,12 @@
 ;; set buffer to auto-update when the associated file is written to externally, and set it to update in 1s
 (global-auto-revert-mode 1)
 (setq auto-revert-interval 1)
+
+;; speed up unicode loading, but uses more memory
+(setq inhibit-compacting-font-caches t)
+
+(global-visual-line-mode 1)
+
 ;; All package-related stuff goes under here---------------------------------
 
 ;; Straight.el bootstrap code
@@ -85,7 +91,7 @@
    ((string-equal system-name "DURIAN")
     (xah-fly-keys-set-layout 'qwerty))) 
   (xah-fly-keys 1))
-
+(use-package xah-find)
 
 (use-package which-key
   :config
@@ -94,10 +100,11 @@
 (use-package org
   :bind (("C-c a" . org-agenda)
 	 ("C-c l" . org-store-link))
+  :hook (org-mode-hook . visual-line-mode)
   :config
   (setq org-log-done t)
   (setq org-startup-indented t)
-  (setq org-agenda-files (list "~/stuff/Notes/.org"))
+  (setq org-agenda-files (list "~/stuff/notes/zk/.org"))
   (setq org-todo-keywords
 	'((sequence "TODO(t)"
 		    "ASAP(a)"
@@ -110,7 +117,63 @@
 		    "TOOLATE(l)"
 		    "CANCELLED(c)"
 		    "DONE(d)"))))
-;;org-agenda-custom-commands is under custom-set-variables for convenience; the "Easy Customisation" updates to there. 
+;;org-agenda-custom-commands is under custom-set-variables for convenience; the "Easy Customisation" updates to there.
+
+;;org roam
+(if (string-equal system-name "ASSES-UX310UQK")
+    (add-to-list 'exec-path "~/bin/sqlite-tools-win32-x86-3340100"))
+(use-package org-roam
+  :custom
+  (org-roam-directory "~/stuff/notes/zk")
+  (org-roam-dailies-directory "daily/")
+  (if (string-equal system-name "ASSES-UX310UQK")
+      (org-roam-graph-executable "~/bin/Graphviz/bin/dot.exe")
+      (org-roam-graph-viewer "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe"))
+  :bind (:map org-roam-mode-map
+	      (("C-c n l" . org-roam)
+	       ("C-c n f" . org-roam-find-file)
+	       ("C-c n d" . org-roam-dailies-find-date)
+	       ("C-c n p" . org-roam-dailies-find-previous-note)
+	       ("C-c n n" . org-roam-dailies-find-next-note)
+	       ("C-c n g" . org-roam-graph)
+	       ("C-c n r" . org-roam-buffer-toggle-display)
+	       ("C-c n b" . org-roam-switch-to-buffer))
+	      :map org-mode-map
+	      (("C-c n i" . org-roam-insert))
+	      (("C-c n I" . org-roam-insert-immediate)))
+  :config
+  (setq org-roam-db-update-method 'immediate)
+  (setq org-roam-capture-templates
+	'(("d" "default without ${slug}" plain
+	   (function org-roam-capture--get-point)
+	   "%?"
+	   :file-name "%<%Y%m%d%H%M%S>"
+	   :head "#+title: ${title}\n"
+	   :unnarrowed t)))
+  (setq org-roam-dailies-capture-templates
+	'(("d" "default" entry
+	   #'org-roam-capture--get-point
+	   "* %?"
+	   :file-name "daily/%<%Y-%m-%d>"
+	   :head "#+title: %<%Y-%m-%d>\n\n"))))
+
+;; ivy, counsel, swiper (completion, UIs, isearch replacement respectively)
+(use-package counsel
+  :after ivy
+  :config (counsel-mode))
+(use-package ivy
+  :defer 0.1
+  :diminish
+  :bind (("C-c C-r" . ivy-resume)
+         ("C-x B" . ivy-switch-buffer-other-window))
+  :custom
+  (ivy-count-format "(%d/%d) ")
+  (ivy-use-virtual-buffers t)
+  :config (ivy-mode))
+(use-package swiper
+  :after ivy
+  :bind (("C-s" . swiper)
+         ("C-r" . swiper)))
 
 (use-package geiser)
 (use-package paredit
@@ -120,6 +183,18 @@
 	  lisp-mode
 	  eval-expression-minibuffer-setup
 	  scheme-mode) . paredit-mode))
+
+(use-package attrap)
+(use-package dante
+  :after haskell-mode
+  :commands 'dante-mode
+  :init
+  (add-hook 'haskell-mode-hook 'flycheck-mode)
+  (add-hook 'haskell-mode-hook 'dante-mode)
+  :config
+  (flycheck-add-next-checker 'haskell-dante '(info . haskell-hlint))
+  )
+(set-language-environment 'utf-8) ; fixes the "haskell process has died" error somehow
 
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
