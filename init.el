@@ -19,9 +19,9 @@
 (show-paren-mode)
 ;;(setq show-paren
 
-;;increase garbage collection limit to 50MB
-(setq gc-cons-threshold 50000000)
-(setq large-file-warning-threshold 100000000);; ~100MB?
+;;increase garbage collection limit to 100MiB
+(setq gc-cons-threshold (* 100 1024 1024))
+(setq large-file-warning-threshold (* 100 1024 1024))
 
 
 ;;enable these commands
@@ -93,9 +93,7 @@
   (xah-fly-keys 1))
 (use-package xah-find)
 
-(use-package which-key
-  :config
-  (which-key-mode))
+(use-package which-key :config (which-key-mode))
 
 (use-package org
   :bind (("C-c a" . org-agenda)
@@ -146,6 +144,7 @@
 	 (setq org-roam-graph-executable "~/bin/Graphviz/bin/dot.exe")
 	 (setq org-roam-graph-viewer "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe"))
 	(1 nil))
+  (setq org-roam-file-exclude-regexp ".*~.*")
   (setq org-roam-db-update-method 'immediate)
   (setq org-roam-capture-templates
 	'(("d" "default without ${slug}" plain
@@ -179,6 +178,7 @@
   :bind (("C-s" . swiper)
          ("C-r" . swiper)))
 
+;; for programming in Scheme
 (use-package geiser)
 (use-package paredit
   :hook ((emacs-lisp-mode
@@ -188,6 +188,7 @@
 	  eval-expression-minibuffer-setup
 	  scheme-mode) . paredit-mode))
 
+;; for programming in Haskell
 (use-package attrap)
 (use-package dante
   :after haskell-mode
@@ -199,6 +200,64 @@
   (flycheck-add-next-checker 'haskell-dante '(info . haskell-hlint))
   )
 (set-language-environment 'utf-8) ; fixes the "haskell process has died" error somehow
+
+;;Language Server Protocol(LSP)-related
+(use-package lsp-mode :init
+  ;; set prefix for lsp-command-keymap (few alternatives - "C-l", "C-c l")
+  (setq lsp-keymap-prefix "C-c l")
+  :hook (;; replace XXX-mode with concrete major-mode(e. g. python-mode)
+	 (c-mode . lsp-deferred)
+	 (c++-mode . lsp-deferred)
+	 (python-mode . lsp-deferred)
+	 ;; if you want which-key integration
+	 (lsp-mode . lsp-enable-which-key-integration))
+  :config (setq lsp-idle-delay 0.1)
+  :commands lsp-deferred)
+;; optionally
+(use-package lsp-ui
+  :commands lsp-ui-mode
+  :after lsp-mode)
+(use-package lsp-ivy :commands lsp-ivy-workspace-symbol)
+(use-package lsp-treemacs
+  :config (setq treemacs-space-between-root-nodes nil)
+  :commands lsp-treemacs-errors-list)
+(use-package lsp-pyright :hook (python-mode . (lambda ()
+						(require 'lsp-pyright)
+						(lsp-deferred))))
+
+;; Debug Adaptor Protocol(DAP)-related
+(use-package dap-mode
+  :after lsp-mode
+  :config
+  (require 'dap-cpptools) ; afterwards run dap-cpptools-setup
+  (require 'dap-python) ; requires pip install "ptvsd>=4.2"
+  (dap-auto-configure-mode)
+)
+;; (use-package dap-LANGUAGE) to load the dap adapter for your language
+;; I don't understand the above line
+(use-package company ;;company = complete anything
+  :config
+  (setq company-minimum-prefix-length 1
+	company-idle-delay 0.0)) ;; default is 0.2
+
+;; Built-in Python utilities
+(use-package python
+  :config
+  ;; Remove guess indent python message
+  (setq python-indent-guess-indent-offset-verbose nil)
+  ;; Use IPython when available or fall back to regular Python 
+  (cond
+   ((executable-find "ipython")
+    (progn
+      (setq python-shell-buffer-name "IPython")
+      (setq python-shell-interpreter "ipython")
+      (setq python-shell-interpreter-args "-i --simple-prompt")))
+   ((executable-find "python3")
+    (setq python-shell-interpreter "python3"))
+   ((executable-find "python2")
+    (setq python-shell-interpreter "python2"))
+   (t
+    (setq python-shell-interpreter "python"))))
 
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
