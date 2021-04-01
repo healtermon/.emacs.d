@@ -178,6 +178,9 @@
   :bind (("C-s" . swiper)
          ("C-r" . swiper)))
 
+;; an amazing fronnt-end to git
+(use-package magit)
+
 ;; for programming in Scheme
 (use-package geiser)
 (use-package paredit
@@ -213,7 +216,6 @@
 	 (lsp-mode . lsp-enable-which-key-integration))
   :config (setq lsp-idle-delay 0.1)
   :commands lsp-deferred)
-;; optionally
 (use-package lsp-ui
   :commands lsp-ui-mode
   :after lsp-mode)
@@ -304,4 +306,3 @@
    ;; If there is more than one, they won't work right.
    '(default ((t (:family "mononoki NF" :foundry "outline" :slant normal :weight normal :height 120 :width normal))))))
 
-(use-package magit)
