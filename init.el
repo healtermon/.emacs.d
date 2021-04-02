@@ -238,6 +238,12 @@
 ;; (use-package dap-LANGUAGE) to load the dap adapter for your language
 ;; I don't understand the above line
 (use-package company ;;company = complete anything
+  :bind (:map company-active-map
+	      ("<return>" . nil)
+	      ("RET" . nil)
+	      ("M-<return>" . company-complete-selection)
+	      ("M-RET" . company-complete-selection)
+	      )
   :config
   (setq company-minimum-prefix-length 1
 	company-idle-delay 0.0)) ;; default is 0.2
