@@ -82,13 +82,15 @@
 (recentf-mode 1)
 
 (use-package xah-fly-keys
-  :config ; set-layout required
+  :config ; set-layout required before enabling
   (cond 
-   ((string-equal system-name "ASSES-UX310UQK")
+   ((system-name? "ASSES-UX310UQK")
     (xah-fly-keys-set-layout 'colemak-mod-dh))
-   ((string-equal system-name "localhost")
+   ((system-name? "localhost")
     (xah-fly-keys-set-layout 'qwerty))
-   ((string-equal system-name "DURIAN")
+   ((system-name? "DURIAN")
+    (xah-fly-keys-set-layout 'qwerty))
+   (t
     (xah-fly-keys-set-layout 'qwerty))) 
   (xah-fly-keys 1))
 (use-package xah-find)
@@ -120,9 +122,9 @@
 ;;org roam
 (use-package org-roam
   :init
-  (if (string-equal system-name "ASSES-UX310UQK")
+  (if (system-name? "ASSES-UX310UQK")
       (add-to-list 'exec-path "~/bin/sqlite-tools-win32-x86-3340100"))
-  (if (string-equal system-name "localhost")
+  (if (system-name? "localhost")
       (setq org-roam-directory "~/storage/shared/stuff/notes/zk")
     (setq org-roam-directory "~/stuff/notes/zk"))  
   :custom
@@ -140,7 +142,7 @@
 	      (("C-c n i" . org-roam-insert))
 	      (("C-c n I" . org-roam-insert-immediate)))
   :config
-  (cond ((string-equal system-name "ASSES-UX310UQK")
+  (cond ((system-name? "ASSES-UX310UQK")
 	 (setq org-roam-graph-executable "~/bin/Graphviz/bin/dot.exe")
 	 (setq org-roam-graph-viewer "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe"))
 	(1 nil))
@@ -161,9 +163,6 @@
 	   :head "#+title: %<%Y-%m-%d>\n\n"))))
 
 ;; ivy, counsel, swiper (completion, UIs, isearch replacement respectively)
-(use-package counsel
-  :after ivy
-  :config (counsel-mode))
 (use-package ivy
   :defer 0.1
   :diminish
@@ -173,10 +172,16 @@
   (ivy-count-format "(%d/%d) ")
   (ivy-use-virtual-buffers t)
   :config (ivy-mode))
+(use-package counsel
+  :after ivy
+  :config (counsel-mode))
 (use-package swiper
   :after ivy
   :bind (("C-s" . swiper)
          ("C-r" . swiper)))
+(use-package ivy-prescient ; brings back the smartness of smex to ivy, makes search more predictable
+  :after counsel
+  :config (ivy-prescient-mode t))
 
 ;; an amazing fronnt-end to git
 (use-package magit)
@@ -242,8 +247,7 @@
 	      ("<return>" . nil)
 	      ("RET" . nil)
 	      ("M-<return>" . company-complete-selection)
-	      ("M-RET" . company-complete-selection)
-	      )
+	      ("M-RET" . company-complete-selection))
   :config
   (setq company-minimum-prefix-length 1
 	company-idle-delay 0.0)) ;; default is 0.2
@@ -266,6 +270,9 @@
     (setq python-shell-interpreter "python2"))
    (t
     (setq python-shell-interpreter "python"))))
+
+(if (system-name? "DURIAN")
+    (use-package guix))
 
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
@@ -304,7 +311,7 @@
 	      ((org-agenda-overriding-header "what's stuck projects?"))))
       nil)))))
 
-(if (string-equal system-name "ASSES-UX310UQK")
+(if (system-name? "ASSES-UX310UQK")
   (custom-set-faces
    ;; custom-set-faces was added by Custom.
    ;; If you edit it by hand, you could mess it up, so be careful.
@@ -312,3 +319,5 @@
    ;; If there is more than one, they won't work right.
    '(default ((t (:family "mononoki NF" :foundry "outline" :slant normal :weight normal :height 120 :width normal))))))
 
+(defun system-name? (name-string)
+  (string-equal system-name name-string))
