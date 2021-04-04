@@ -76,10 +76,14 @@
  '("melpa" . "http://melpa.milkbox.net/packages/")
  t)
 
+(defun system-name? (name-string)
+  (string-equal system-name name-string))
+
 (require 'recentf);recent files browsing feature
 (setq recentf-max-saved-items 200
       recentf-max-menu-items 15)
 (recentf-mode 1)
+
 
 (use-package xah-fly-keys
   :config ; set-layout required before enabling
@@ -319,5 +323,4 @@
    ;; If there is more than one, they won't work right.
    '(default ((t (:family "mononoki NF" :foundry "outline" :slant normal :weight normal :height 120 :width normal))))))
 
-(defun system-name? (name-string)
-  (string-equal system-name name-string))
+
