@@ -208,6 +208,7 @@
   :init
   (add-hook 'haskell-mode-hook 'flycheck-mode)
   (add-hook 'haskell-mode-hook 'dante-mode)
+  (add-hook 'haskell-mode-hook 'interactive-haskell-mode)
   :config
   (flycheck-add-next-checker 'haskell-dante '(info . haskell-hlint))
   )
@@ -221,6 +222,7 @@
 	 (c-mode . lsp-deferred)
 	 (c++-mode . lsp-deferred)
 	 (python-mode . lsp-deferred)
+	 (haskell-mode . lsp-deferred)
 	 ;; if you want which-key integration
 	 (lsp-mode . lsp-enable-which-key-integration))
   :config (setq lsp-idle-delay 0.1)
@@ -232,9 +234,11 @@
 (use-package lsp-treemacs
   :config (setq treemacs-space-between-root-nodes nil)
   :commands lsp-treemacs-errors-list)
-(use-package lsp-pyright :hook (python-mode . (lambda ()
-						(require 'lsp-pyright)
-						(lsp-deferred))))
+(use-package lsp-pyright
+  :hook (python-mode . (lambda ()
+			 (require 'lsp-pyright)
+			 (lsp-deferred))))
+(use-package lsp-haskell)
 
 ;; Debug Adaptor Protocol(DAP)-related
 (use-package dap-mode
