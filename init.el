@@ -17,7 +17,6 @@
 (blink-cursor-mode -1)
 
 (show-paren-mode)
-;;(setq show-paren
 
 ;;increase garbage collection limit to 100MiB
 (setq gc-cons-threshold (* 100 1024 1024))
@@ -44,6 +43,8 @@
 (setq inhibit-compacting-font-caches t)
 
 (global-visual-line-mode 1)
+
+(set-language-environment 'utf-8) ; fixes the "haskell process has died" error somehow
 
 ;; All package-related stuff goes under here---------------------------------
 
@@ -212,7 +213,6 @@
   :config
   (flycheck-add-next-checker 'haskell-dante '(info . haskell-hlint))
   )
-(set-language-environment 'utf-8) ; fixes the "haskell process has died" error somehow
 
 ;;Language Server Protocol(LSP)-related
 (use-package lsp-mode :init
