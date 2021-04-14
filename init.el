@@ -192,7 +192,7 @@
 (use-package magit)
 
 ;; for programming in Scheme
-(use-package geiser)
+(use-package geiser) ; for racket if you download minimal racket you need to "raco pkg install compatibility-lib"
 (use-package paredit
   :hook ((emacs-lisp-mode
 	  lisp-interaction-mode
