@@ -239,7 +239,9 @@
     :hook (python-mode . (lambda ()
 			   (require 'lsp-pyright)
 			   (lsp-deferred))))
-  (use-package lsp-haskell))
+  (use-package lsp-haskell)
+  (if (system-name? "DURIAN")
+     (setq ghc-location "~/.ghcup/bin/ghc")))
 
 ;; Debug Adaptor Protocol(DAP)-related
 (use-package dap-mode
