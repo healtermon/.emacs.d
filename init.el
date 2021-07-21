@@ -94,7 +94,7 @@
    ((system-name? "localhost")
     (xah-fly-keys-set-layout 'qwerty))
    ((system-name? "DURIAN")
-    (xah-fly-keys-set-layout 'qwerty))
+    (xah-fly-keys-set-layout 'colemak-mod-dh))
    (t
     (xah-fly-keys-set-layout 'qwerty))) 
   (xah-fly-keys 1))
@@ -131,20 +131,24 @@
       (add-to-list 'exec-path "~/bin/sqlite-tools-win32-x86-3340100"))
   (if (system-name? "localhost")
       (setq org-roam-directory "~/storage/shared/stuff/notes/zk")
-    (setq org-roam-directory "~/stuff/notes/zk"))  
+    (setq org-roam-directory (file-truename "~/stuff/notes/zk")))
+  (setq org-roam-v2-ack t)
   :custom
   (org-roam-dailies-directory "daily/")
+  (define-key org-roam-mode-map [mouse-1] #'org-roam-visit-thing)
+
   :bind (:map org-roam-mode-map
-	      (("C-c n l" . org-roam)
-	       ("C-c n f" . org-roam-find-file)
-	       ("C-c n d" . org-roam-dailies-find-date)
-	       ("C-c n p" . org-roam-dailies-find-previous-note)
-	       ("C-c n n" . org-roam-dailies-find-next-note)
+	      (("C-c n l" . org-roam-buffer)
+	       ("C-c n f" . org-roam-node-find)
+	       ("C-c n d" . org-roam-dailies-goto-date)
+	       ("C-c n p" . org-roam-dailies-goto-previous-note)
+	       ("C-c n n" . org-roam-dailies-goto-next-note)
 	       ("C-c n g" . org-roam-graph)
-	       ("C-c n r" . org-roam-buffer-toggle-display)
-	       ("C-c n b" . org-roam-switch-to-buffer))
+	       ("C-c n r" . org-roam-buffer-toggle)
+	       ("C-c n b" . org-roam-switch-to-buffer)
+	       ("C-c n c" . org-id-get-create))
 	      :map org-mode-map
-	      (("C-c n i" . org-roam-insert))
+	      (("C-c n i" . org-roam-node-insert))
 	      (("C-c n I" . org-roam-insert-immediate)))
   :config
   (cond ((system-name? "ASSES-UX310UQK")
@@ -155,17 +159,17 @@
   (setq org-roam-db-update-method 'immediate)
   (setq org-roam-capture-templates
 	'(("d" "default without ${slug}" plain
-	   (function org-roam-capture--get-point)
 	   "%?"
-	   :file-name "%<%Y%m%d%H%M%S>"
-	   :head "#+title: ${title}\n"
+	   :if-new (file+head "%<%Y%m%d%H%M%S>.org"
+			      "#+title: ${title}\n")
 	   :unnarrowed t)))
   (setq org-roam-dailies-capture-templates
 	'(("d" "default" entry
-	   #'org-roam-capture--get-point
 	   "* %?"
-	   :file-name "daily/%<%Y-%m-%d>"
-	   :head "#+title: %<%Y-%m-%d>\n\n"))))
+	   :if-new (file+head "%<%Y-%m-%d>.org"
+			      "#+title: %<%Y-%m-%d>\n\n")
+	   :unarrowed t))))
+(org-roam-setup)
 
 ;; ivy, counsel, swiper (completion, UIs, isearch replacement respectively)
 (use-package ivy
@@ -188,11 +192,14 @@
   :after counsel
   :config (ivy-prescient-mode t))
 
-;; an amazing fronnt-end to git
+;; an amazing front-end to git
 (use-package magit)
 
 ;; for programming in Scheme
-(use-package geiser) ; for racket if you download minimal racket you need to "raco pkg install compatibility-lib"
+(require 'geiser)
+(use-package geiser)
+(use-package geiser-guile)
+(use-package geiser-racket); for racket if you download minimal racket you need to "raco pkg install compatibility-lib"
 (use-package paredit
   :hook ((emacs-lisp-mode
 	  lisp-interaction-mode
@@ -290,12 +297,10 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(custom-safe-themes
-   (quote
-    ("bf66464043eeb31ee08a92de73d786787ecadf9cd3a1a08a886fe0052a35841a" default)))
+ ;; '(custom-safe-themes
+ ;;   '("bf66464043eeb31ee08a92de73d786787ecadf9cd3a1a08a886fe0052a35841a" default))
  '(org-agenda-custom-commands
-   (quote
-    (("c" "To-dos of Noted Life"
+   '(("c" "To-dos of Noted Life"
       ((tags-todo "+health"
 		  ((org-agenda-overriding-header "Health first~!")))
        (tags-todo "+job"
@@ -314,22 +319,24 @@
        (todo "TODO"
 	     ((org-agenda-overriding-header "Physics")
 	      (org-agenda-tag-filter-preset
-	       (quote
-		("+physics")))))
+	       '("+physics"))))
        (tags-todo "+math-physics"
 		  ((org-agenda-overriding-header "Mathematics")))
        (stuck ""
 	      ((org-agenda-overriding-header "what's stuck projects?"))))
-      nil)))))
+      nil)))
+ )
 
-(if (system-name? "ASSES-UX310UQK")
+(when (system-name? "ASSES-UX310UQK")
   (custom-set-faces
    ;; custom-set-faces was added by Custom.
    ;; If you edit it by hand, you could mess it up, so be careful.
    ;; Your init file should contain only one such instance.
    ;; If there is more than one, they won't work right.
    '(default ((t (:family "mononoki NF" :foundry "outline" :slant normal :weight normal :height 120 :width normal))))))
-
+(when (system-name? "DURIAN")
+  (custom-set-faces
+   '(default ((t (:family "mononoki" :foundry "UKWN" :slant normal :weight normal :height 151 :width normal))))))
 
 (defun delete-file-visited-by-buffer (buffername)
   "Delete the file visited by the buffer named BUFFERNAME."
@@ -339,3 +346,4 @@
     (when filename
       (delete-file filename)
       (kill-buffer-ask buffer))))
+
