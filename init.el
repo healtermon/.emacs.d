@@ -74,7 +74,7 @@
 (require 'package)
 (add-to-list
  'package-archives
- '("melpa" . "http://melpa.milkbox.net/packages/")
+ '("melpa" . "https://melpa.org/packages/")
  t)
 
 (defun system-name? (name-string)
@@ -109,7 +109,7 @@
   :config
   (setq org-log-done t)
   (setq org-startup-indented t)
-  (setq org-agenda-files (list "~/stuff/notes/zk/.org"))
+  (setq org-agenda-files (list "~/stuff/notes/zk/life.org"))
   (setq org-todo-keywords
 	'((sequence "TODO(t)"
 		    "ASAP(a)"
@@ -234,11 +234,12 @@
 (use-package lsp-treemacs
   :config (setq treemacs-space-between-root-nodes nil)
   :commands lsp-treemacs-errors-list)
-(use-package lsp-pyright
-  :hook (python-mode . (lambda ()
-			 (require 'lsp-pyright)
-			 (lsp-deferred))))
-(use-package lsp-haskell)
+(when (not (system-name? "ASSES-UX310UQK"))
+  (use-package lsp-pyright
+    :hook (python-mode . (lambda ()
+			   (require 'lsp-pyright)
+			   (lsp-deferred))))
+  (use-package lsp-haskell))
 
 ;; Debug Adaptor Protocol(DAP)-related
 (use-package dap-mode
