@@ -89,14 +89,12 @@
 (use-package xah-fly-keys
   :config ; set-layout required before enabling
   (cond 
-   ((system-name? "ASSES-UX310UQK")
+   ((or (system-name? "ASSES-UX310UQK") (system-name? "DURIAN") (system-name? "mango"))
     (xah-fly-keys-set-layout 'colemak-mod-dh))
    ((system-name? "localhost")
     (xah-fly-keys-set-layout 'qwerty))
-   ((system-name? "DURIAN")
-    (xah-fly-keys-set-layout 'colemak-mod-dh))
    (t
-    (xah-fly-keys-set-layout 'qwerty))) 
+    (xah-fly-keys-set-layout 'qwerty)))
   (xah-fly-keys 1))
 (use-package xah-find)
 
@@ -124,13 +122,21 @@
 		    "DONE(d)"))))
 ;;org-agenda-custom-commands is under custom-set-variables for convenience; the "Easy Customisation" updates to there.
 
+(use-package dash)
+(use-package f)
+(use-package s)
+(use-package emacsql)
+(use-package emacsql-sqlite)
+(use-package magit-section)
 ;;org roam
 (use-package org-roam
+  :after (dash f s org emacsql emacsql-sqlite magit-section)
   :init
   (if (system-name? "localhost")
       (setq org-roam-directory (file-truename "~/storage/shared/stuff/notes/zk"))
     (setq org-roam-directory (file-truename "~/stuff/notes/zk")))
   (setq org-roam-v2-ack t)
+  (org-roam-setup)
   :custom
   (org-roam-dailies-directory "daily/")
   (define-key org-roam-mode-map [mouse-1] #'org-roam-visit-thing)
@@ -166,7 +172,7 @@
 	   :if-new (file+head "%<%Y-%m-%d>.org"
 			      "#+title: %<%Y-%m-%d>\n\n")
 	   :unarrowed t))))
-(org-roam-setup)
+
 
 ;; ivy, counsel, swiper (completion, UIs, isearch replacement respectively)
 (use-package ivy
@@ -193,7 +199,6 @@
 (use-package magit)
 
 ;; for programming in Scheme
-(require 'geiser)
 (use-package geiser)
 (use-package geiser-guile)
 (use-package geiser-racket); for racket if you download minimal racket you need to "raco pkg install compatibility-lib"
@@ -286,7 +291,7 @@
    (t
     (setq python-shell-interpreter "python"))))
 
-(if (system-name? "DURIAN")
+(if (or (system-name? "mango") (system-name? "DURIAN"))
     (use-package guix))
 
 (custom-set-variables
@@ -332,6 +337,11 @@
 (when (system-name? "DURIAN")
   (custom-set-faces
    '(default ((t (:family "mononoki" :foundry "UKWN" :slant normal :weight normal :height 151 :width normal))))))
+(when (system-name? "mango")
+  (custom-set-faces
+   '(default ((t (:family "mononoki" :foundry "UKWN" :slant normal :weight normal :height 113 :width normal))))))
+
+
 
 (defun delete-file-visited-by-buffer (buffername)
   "Delete the file visited by the buffer named BUFFERNAME."
@@ -341,4 +351,5 @@
     (when filename
       (delete-file filename)
       (kill-buffer-ask buffer))))
+
 
