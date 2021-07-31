@@ -16,7 +16,9 @@
 (setq default-tab-width 2)
 (blink-cursor-mode -1)
 
-(show-paren-mode)
+(show-paren-mode 1)
+(setq show-paren-delay 0)
+
 
 ;;increase garbage collection limit to 100MiB
 (setq gc-cons-threshold (* 100 1024 1024))
@@ -132,10 +134,10 @@
 (use-package org-roam
   :after (dash f s org emacsql emacsql-sqlite magit-section)
   :init
+  (setq org-roam-v2-ack t)
   (if (system-name? "localhost")
       (setq org-roam-directory (file-truename "~/storage/shared/stuff/notes/zk"))
     (setq org-roam-directory (file-truename "~/stuff/notes/zk")))
-  (setq org-roam-v2-ack t)
   (org-roam-setup)
   :custom
   (org-roam-dailies-directory "daily/")
@@ -171,7 +173,8 @@
 	   "* %?"
 	   :if-new (file+head "%<%Y-%m-%d>.org"
 			      "#+title: %<%Y-%m-%d>\n\n")
-	   :unarrowed t))))
+	   :unarrowed t)))
+  )
 
 
 ;; ivy, counsel, swiper (completion, UIs, isearch replacement respectively)
