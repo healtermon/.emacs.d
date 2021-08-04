@@ -138,7 +138,7 @@
   (if (system-name? "localhost")
       (setq org-roam-directory (file-truename "~/storage/shared/stuff/notes/zk"))
     (setq org-roam-directory (file-truename "~/stuff/notes/zk")))
-  (org-roam-setup)
+  (org-roam-setup) ;; need org-roam-sqlite-available-p to be true
   :custom
   (org-roam-dailies-directory "daily/")
   (define-key org-roam-mode-map [mouse-1] #'org-roam-visit-thing)
@@ -155,6 +155,8 @@
 	       ("C-c n c" . org-id-get-create)
 	       ("C-c n i" . org-roam-node-insert)
 	       ("C-c n I" . org-roam-node-insert-immediate) ;wait for the "immediate" version in v2
+	       ("C-c n w" . org-roam-alias-add)
+	       ("C-c n y" . org-roam-alias-remove)
 	       ))
   :config
   (when (system-name? "ASSES-UX310UQK")
