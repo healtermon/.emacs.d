@@ -124,24 +124,39 @@
 		    "DONE(d)"))))
 ;;org-agenda-custom-commands is under custom-set-variables for convenience; the "Easy Customisation" updates to there.
 
+;;org roam
 (use-package dash)
 (use-package f)
 (use-package s)
 (use-package emacsql)
-(use-package emacsql-sqlite)
+(if (system-name? "localhost")
+    (use-package emacsql-sqlite3)
+  (use-package emacsql-sqlite))
 (use-package magit-section)
-;;org roam
+
 (use-package org-roam
-  :after (dash f s org emacsql emacsql-sqlite magit-section)
+  :after (dash f s org emacsql magit-section)
   :init
   (setq org-roam-v2-ack t)
-  (if (system-name? "localhost")
-      (setq org-roam-directory (file-truename "~/storage/shared/stuff/notes/zk"))
-    (setq org-roam-directory (file-truename "~/stuff/notes/zk")))
-  (org-roam-setup) ;; need org-roam-sqlite-available-p to be true
   :custom
+  (org-roam-directory (file-truename (if (system-name? "localhost")
+					 "~/storage/shared/stuff/notes/zk"
+				       "~/stuff/notes/zk")))
   (org-roam-dailies-directory "daily/")
   (define-key org-roam-mode-map [mouse-1] #'org-roam-visit-thing)
+  (org-roam-file-exclude-regexp ".*~.*")
+  (org-roam-capture-templates
+   '(("d" "default without ${slug}" plain
+      "%?"
+      :if-new (file+head "%<%Y%m%d%H%M%S>.org"
+			 "#+title: ${title}\n")
+      :unnarrowed t)))
+  (org-roam-dailies-capture-templates
+   '(("d" "default" entry
+      "* %?"
+      :if-new (file+head "%<%Y-%m-%d>.org"
+			 "#+title: %<%Y-%m-%d>\n\n")
+      :unarrowed t)))
 
   :bind (:map org-mode-map
 	      (("C-c n l" . org-roam-buffer)
@@ -159,24 +174,50 @@
 	       ("C-c n y" . org-roam-alias-remove)
 	       ))
   :config
-  (when (system-name? "ASSES-UX310UQK")
-    (setq org-roam-graph-executable "~/bin/Graphviz/bin/dot.exe")
-    (setq org-roam-graph-viewer "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe"))
-  (setq org-roam-file-exclude-regexp ".*~.*")
-  (setq org-roam-db-update-method 'immediate)
-  (setq org-roam-capture-templates
-	'(("d" "default without ${slug}" plain
-	   "%?"
-	   :if-new (file+head "%<%Y%m%d%H%M%S>.org"
-			      "#+title: ${title}\n")
-	   :unnarrowed t)))
-  (setq org-roam-dailies-capture-templates
-	'(("d" "default" entry
-	   "* %?"
-	   :if-new (file+head "%<%Y-%m-%d>.org"
-			      "#+title: %<%Y-%m-%d>\n\n")
-	   :unarrowed t)))
+  (when (system-name? "localhost")
+    (defun org-roam-db ()
+      "Entrypoint to the Org-roam sqlite database.
+Initializes and stores the database, and the database connection.
+Performs a database upgrade when required."
+      (unless (and (org-roam-db--get-connection)
+                   (emacsql-live-p (org-roam-db--get-connection)))
+	(let ((init-db (not (file-exists-p org-roam-db-location))))
+          (make-directory (file-name-directory org-roam-db-location) t)
+          ;; (let ((conn (emacsql-sqlite org-roam-db-location)))
+          (let ((conn (emacsql-sqlite3 org-roam-db-location)))
+            (emacsql conn [:pragma (= foreign_keys ON)])
+            (set-process-query-on-exit-flag (emacsql-process conn) nil)
+            (puthash (expand-file-name org-roam-directory)
+                     conn
+                     org-roam-db--connection)
+            (when init-db
+              (org-roam-db--init conn))
+            (let* ((version (caar (emacsql conn "PRAGMA user_version")))
+                   (version (org-roam-db--upgrade-maybe conn version)))
+              (cond
+               ((> version org-roam-db-version)
+		(emacsql-close conn)
+		(user-error
+		 "The Org-roam database was created with a newer Org-roam version.  "
+		 "You need to update the Org-roam package"))
+               ((< version org-roam-db-version)
+		(emacsql-close conn)
+		(error "BUG: The Org-roam database scheme changed %s"
+                       "and there is no upgrade path")))))))
+      (org-roam-db--get-connection))
+    (defun org-roam-db--init (db)
+      "Initialize database DB with the correct schema and user version."
+      (emacsql-with-transaction db
+	;; (emacsql db "PRAGMA foreign_keys = ON")
+	(emacsql db [:pragma (= foreign_keys ON)])
+	(pcase-dolist (`(,table ,schema) org-roam-db--table-schemata)
+          (emacsql db [:create-table $i1 $S2] table schema))
+	(pcase-dolist (`(,index-name ,table ,columns) org-roam-db--table-indices)
+          (emacsql db [:create-index $i1 :on $i2 $S3] index-name table columns))
+	(emacsql db (format "PRAGMA user_version = %s" org-roam-db-version)))))
+  (org-roam-setup) ;; need org-roam-sqlite-available-p to be true
   )
+
 
 
 ;; ivy, counsel, swiper (completion, UIs, isearch replacement respectively)
