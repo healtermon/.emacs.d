@@ -102,6 +102,32 @@
 
 (use-package which-key :config (which-key-mode))
 
+
+;; ivy, counsel, swiper (completion, UIs, isearch replacement respectively)
+(use-package ivy
+  :defer 0.1
+  :diminish
+  :bind (("C-c C-r" . ivy-resume)
+         ("C-x B" . ivy-switch-buffer-other-window))
+  :custom
+  (ivy-count-format "(%d/%d) ")
+  (ivy-use-virtual-buffers t)
+  :config (ivy-mode))
+(use-package counsel
+  :after ivy
+  :config (counsel-mode))
+(use-package swiper
+  :after ivy
+  :bind (("C-s" . swiper)
+         ("C-r" . swiper)))
+(use-package ivy-prescient ; brings back the smartness of smex to ivy, makes search more predictable
+  :after counsel
+  :config (ivy-prescient-mode t))
+
+;; an amazing front-end to git
+(use-package magit)
+
+
 (use-package org
   :bind (("C-c a" . org-agenda)
 	 ("C-c l" . org-store-link))
@@ -218,31 +244,24 @@ Performs a database upgrade when required."
   (org-roam-setup) ;; need org-roam-sqlite-available-p to be true
   )
 
+(when (system-name? "mango wait till when this package is more grown and available.")
+  (use-package websocket :after org-roam)
+  (use-package httpd)
+  (use-package org-roam-ui
+    :straight
+    (:host github :repo "org-roam/org-roam-ui" :branch "main" :files ("*.el" "out"))
+    :after org-roam
+    ;; :hook 
+    ;;         normally we'd recommend hooking orui after org-roam, but since org-roam does not have
+    ;;         a hookable mode anymore, you're advised to pick something yourself
+    ;;         if you don't care about startup time, use
+    ;;  :hook (after-init . org-roam-ui-mode)
+    :config
+    (setq org-roam-ui-sync-theme t
+          org-roam-ui-follow t
+          org-roam-ui-update-on-save t
+          org-roam-ui-open-on-start t)))
 
-
-;; ivy, counsel, swiper (completion, UIs, isearch replacement respectively)
-(use-package ivy
-  :defer 0.1
-  :diminish
-  :bind (("C-c C-r" . ivy-resume)
-         ("C-x B" . ivy-switch-buffer-other-window))
-  :custom
-  (ivy-count-format "(%d/%d) ")
-  (ivy-use-virtual-buffers t)
-  :config (ivy-mode))
-(use-package counsel
-  :after ivy
-  :config (counsel-mode))
-(use-package swiper
-  :after ivy
-  :bind (("C-s" . swiper)
-         ("C-r" . swiper)))
-(use-package ivy-prescient ; brings back the smartness of smex to ivy, makes search more predictable
-  :after counsel
-  :config (ivy-prescient-mode t))
-
-;; an amazing front-end to git
-(use-package magit)
 
 ;; for programming in Scheme
 (use-package geiser)
@@ -387,7 +406,15 @@ Performs a database upgrade when required."
   (custom-set-faces
    '(default ((t (:family "mononoki" :foundry "UKWN" :slant normal :weight normal :height 113 :width normal))))))
 
+(when (or (system-name? "mango") (system-name? "nix-on-droid-placeholder-name"))
+  (use-package nix-mode
+    :mode "\\.nix\\'"))
+;; (when (system-name? "mango")
+;;   (use-package pdf-tools
+;;     :after tablist
+;;     :custom (add-hook 'TeX-after-compilation-finished-functions #'TeX-revert-document-buffer)
 
+;;     )
 
 (defun delete-file-visited-by-buffer (buffername)
   "Delete the file visited by the buffer named BUFFERNAME."
