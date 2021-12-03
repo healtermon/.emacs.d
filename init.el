@@ -164,9 +164,9 @@
   :after (dash f s org emacsql magit-section)
   :init
   (setq org-roam-v2-ack t)
-  :custom
+  :custom  
   (org-roam-directory (file-truename (if (system-name? "localhost")
-					 "~/storage/shared/stuff/notes/zk"
+					 "/data/data/com.termux/files/home/storage/shared/stuff/notes/zk"
 				       "~/stuff/notes/zk")))
   (org-roam-dailies-directory "daily/")
   (define-key org-roam-mode-map [mouse-1] #'org-roam-visit-thing)
@@ -241,7 +241,7 @@ Performs a database upgrade when required."
 	(pcase-dolist (`(,index-name ,table ,columns) org-roam-db--table-indices)
           (emacsql db [:create-index $i1 :on $i2 $S3] index-name table columns))
 	(emacsql db (format "PRAGMA user_version = %s" org-roam-db-version)))))
-  (org-roam-setup) ;; need org-roam-sqlite-available-p to be true
+  (org-roam-db-autosync-mode) ;; need org-roam-sqlite-available-p to be true
   )
 
 (when (system-name? "mango wait till when this package is more grown and available.")
