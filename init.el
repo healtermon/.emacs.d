@@ -90,13 +90,10 @@
 
 (use-package xah-fly-keys
   :config ; set-layout required before enabling
-  (cond 
-   ((or (system-name? "ASSES-UX310UQK") (system-name? "DURIAN") (system-name? "mango"))
-    (xah-fly-keys-set-layout 'colemak-mod-dh))
-   ((system-name? "localhost")
-    (xah-fly-keys-set-layout 'qwerty))
-   (t
-    (xah-fly-keys-set-layout 'qwerty)))
+  (xah-fly-keys-set-layout (cond 
+			    ((or (system-name? "ASSES-UX310UQK") (system-name? "DURIAN") (system-name? "mango")) 'colemak-mod-dh)
+			    ((system-name? "localhost") 'qwerty)
+			    (t 'qwerty)))
   (xah-fly-keys 1))
 (use-package xah-find)
 
@@ -184,21 +181,20 @@
 			 "#+title: %<%Y-%m-%d>\n\n")
       :unarrowed t)))
 
-  :bind (:map org-mode-map
-	      (("C-c n l" . org-roam-buffer)
-	       ("C-c n f" . org-roam-node-find)
-	       ("C-c n d" . org-roam-dailies-goto-date)
-	       ("C-c n p" . org-roam-dailies-goto-previous-note)
-	       ("C-c n n" . org-roam-dailies-goto-next-note)
-	       ("C-c n g" . org-roam-graph)
-	       ("C-c n r" . org-roam-buffer-toggle)
-	       ("C-c n b" . org-roam-switch-to-buffer) ;not in v2 yet
-	       ("C-c n c" . org-id-get-create)
-	       ("C-c n i" . org-roam-node-insert)
-	       ("C-c n I" . org-roam-node-insert-immediate) ;wait for the "immediate" version in v2
-	       ("C-c n w" . org-roam-alias-add)
-	       ("C-c n y" . org-roam-alias-remove)
-	       ))
+  :bind (("C-c n f" . org-roam-node-find)
+	 ("C-c n d" . org-roam-dailies-goto-date)
+	 (:map org-mode-map
+	       (("C-c n p" . org-roam-dailies-goto-previous-note)
+		("C-c n n" . org-roam-dailies-goto-next-note)
+		;; ("C-c n g" . org-roam-graph) ;; use org-roam-ui to generate the graph, it's probably vastly superior
+		("C-c n l" . org-roam-buffer-toggle)
+		("C-c n b" . org-roam-switch-to-buffer) ;not in v2 yet
+		("C-c n c" . org-id-get-create)
+		("C-c n i" . org-roam-node-insert)
+		("C-c n I" . org-roam-node-insert-immediate) ;wait for the "immediate" version in v2
+		("C-c n a" . org-roam-alias-add)
+		("C-c n r" . org-roam-alias-remove)
+		)))
   :config
   (when (system-name? "localhost")
     (defun org-roam-db ()
@@ -244,13 +240,13 @@ Performs a database upgrade when required."
   (org-roam-db-autosync-mode) ;; need org-roam-sqlite-available-p to be true
   )
 
-(when (system-name? "mango wait till when this package is more grown and available.")
+(when (system-name? "mango")
   (use-package websocket :after org-roam)
-  (use-package httpd)
+  (use-package simple-httpd)
   (use-package org-roam-ui
     :straight
     (:host github :repo "org-roam/org-roam-ui" :branch "main" :files ("*.el" "out"))
-    :after org-roam
+    :after (org-roam websocket simple-httpd f)
     ;; :hook 
     ;;         normally we'd recommend hooking orui after org-roam, but since org-roam does not have
     ;;         a hookable mode anymore, you're advised to pick something yourself
@@ -426,3 +422,14 @@ Performs a database upgrade when required."
       (kill-buffer-ask buffer))))
 
 
+(defun er-sudo-edit (&optional arg)
+  "Edit currently visited file as root.
+
+With a prefix ARG prompt for a file to visit.
+Will also prompt for a file to visit if current
+buffer is not visiting a file."
+  (interactive "P")
+  (if (or arg (not buffer-file-name))
+      (find-file (concat "/sudo:root@localhost:"
+                         (ido-read-file-name "Find file(as root): ")))
+    (find-alternate-file (concat "/sudo:root@localhost:" buffer-file-name))))
