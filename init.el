@@ -92,7 +92,8 @@
 
 
 (use-package xah-fly-keys
-  :config ; set-layout required before enabling
+  :config
+  ;; set-layout required before enabling
   (xah-fly-keys-set-layout (cond 
 			    ((or (system-name? "ASSES-UX310UQK") (system-name? "DURIAN") (system-name? "mango")) 'colemak-mod-dh)
 			    ((system-name? "localhost") 'qwerty)
@@ -144,11 +145,14 @@
 
 ;; provides _good shit_ versions of common commands
 (use-package consult
+  :bind (("C-x r x" . consult-register)
+         ("C-x r b" . consult-bookmark)
+	 ("C-s" . consult-line))
   :init
   (global-set-key [remap switch-to-buffer] 'consult-buffer)
   (global-set-key [remap find-file] 'consult-find)
-  :bind (("C-x r x" . consult-register)
-         ("C-x r b" . consult-bookmark))
+  ;; Replace `multi-occur' with `consult-multi-occur', which is a drop-in replacement.
+  (fset 'multi-occur #'consult-multi-occur)
   )
 
 (use-package consult-dir
@@ -159,7 +163,41 @@
               ("C-x C-j" . consult-dir-jump-file)
 	      )
        )
+(use-package consult-company
+  :after consult
+  :config
+  (define-key company-mode-map [remap completion-at-point] #'consult-company)
+  )
+(use-package embark
+  :init
+  ;; Optionally replace the key help with a completing-read interface
+  (setq prefix-help-command #'embark-prefix-help-command)
 
+  :bind (("C-." . embark-act)   ; like a right-click
+	 ("M-." . embark-dwim)
+	 ("C-h B" . embark-bindings)) ; like a  left-click
+  
+  :config
+  ;; show Embark via whichkey
+  (setq embark-action-indicator
+	(lambda (map)
+	  (which-key--show-keymap "Embark" map nil nil 'no-paging)
+	  #'which-key--hide-popup-ignore-command)
+	embark-become-indicator embark-action-indicator)
+  
+  ;; Hide the mode line of the Embark live/completions buffers
+  (add-to-list 'display-buffer-alist
+               '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
+                 nil
+                 (window-parameters (mode-line-format . none)))))
+
+(use-package embark-consult
+  :after (embark consult)
+  :demand t ; only necessary if you have the hook below
+  ;; if you want to have consult previews as you move around an
+  ;; auto-updating embark collect buffer
+  :hook
+  (embark-collect-mode . consult-preview-at-point-mode))
 ;; end completion-helping stuff
 
 ;; an amazing front-end to git
@@ -187,6 +225,7 @@
 		    "CANCELLED(c)"
 		    "DONE(d)"))))
 ;;org-agenda-custom-commands is under custom-set-variables for convenience; the "Easy Customisation" updates to there.
+
 
 ;;org roam
 (use-package dash)
@@ -362,6 +401,8 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(custom-safe-themes
+   '("e9d47d6d41e42a8313c81995a60b2af6588e9f01a1cf19ca42669a7ffd5c2fde" default))
  '(org-agenda-custom-commands
    '(("c" "To-dos of Noted Life"
       ((tags-todo "+health"
@@ -387,8 +428,7 @@
 		  ((org-agenda-overriding-header "Mathematics")))
        (stuck ""
 	      ((org-agenda-overriding-header "what's stuck projects?"))))
-      nil)))
- )
+      nil))))
 
 (when (system-name? "ASSES-UX310UQK")
   (custom-set-faces
@@ -438,3 +478,5 @@ buffer is not visiting a file."
       (find-file (concat "/sudo:root@localhost:"
                          (ido-read-file-name "Find file(as root): ")))
     (find-alternate-file (concat "/sudo:root@localhost:" buffer-file-name))))
+
+
