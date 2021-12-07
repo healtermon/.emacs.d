@@ -121,7 +121,9 @@
 (use-package vertico
   :init (vertico-mode)
   (setq vertico-scroll-margin 0) ;; no idea what this does, I don't see a difference
-  (setq vertico-count 20)
+  (setq vertico-count (if (system-name? "localhost")
+			  10
+			20))
   (setq vertico-resize t)
   (setq vertico-cycle t))
 
