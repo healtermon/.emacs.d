@@ -107,7 +107,7 @@
 
 (use-package which-key :config (which-key-mode))
 
-;; completion-helping stuff. I went from "ivy,counsel,swiper" to "vertico,orderless,consult,marginalia,embark" to make it more modular and compliant with default api. Guide at vertico's github readme
+;; completion-helping stuff
 
 ;; save minibuffer command history
 (use-package savehist
@@ -143,17 +143,48 @@
   (setq marginalia-max-relative-age 0)
   (marginalia-mode 1)  )
 
-;; provides _good shit_ versions of common commands
+;; provides _good shit_ versions of common commands and more
 (use-package consult
-  :bind (("C-x r x" . consult-register)
+  :bind (("C-x M-:" . consult-complex-command)
+	 ("C-c h" . consult-history)
+	 ("C-c m" . consult-mode-command)
+	 ("C-x b" . consult-buffer)
+	 ("C-x 4 b" . consult-buffer-other-window)
+         ("C-x 5 b" . consult-buffer-other-frame)
+         ("C-x r x" . consult-register)
          ("C-x r b" . consult-bookmark)
-	 ("C-s" . consult-line))
+         ("M-g g" . consult-goto-line)
+         ("M-g M-g" . consult-goto-line)
+         ("M-g o" . consult-outline)       ;; "M-s o" is a good alternative.
+         ("M-g l" . consult-line)          ;; "M-s l" is a good alternative.
+         ("M-g m" . consult-mark)          ;; I recommend to bind Consult navigation
+         ("M-g k" . consult-global-mark)   ;; commands under the "M-g" prefix.
+         ("M-g r" . consult-ripgrep)      ;; or consult-grep, consult-ripgrep
+         ("M-g f" . consult-find)          ;; or consult-locate, my-fdfind
+         ("M-g i" . consult-project-imenu) ;; or consult-imenu
+         ("M-g e" . consult-error)
+         ("M-s m" . consult-multi-occur)
+         ("M-y" . consult-yank-pop)
+         ("<help> a" . consult-apropos)
+	 )
   :init
   (global-set-key [remap switch-to-buffer] 'consult-buffer)
   (global-set-key [remap find-file] 'consult-find)
   ;; Replace `multi-occur' with `consult-multi-occur', which is a drop-in replacement.
   (fset 'multi-occur #'consult-multi-occur)
   )
+
+;; from https://babbagefiles.xyz/org-roam-on-android/
+;; org-roam-rg-search - this is a much faster way to search Org-roam notes:
+;; requires the Selectrum+Consult setup immediately preceding.
+;; Use C-c r r to search notes via consult's ripgrep interface
+(defun bms/org-roam-rg-search ()
+  "Search org-roam directory using consult-ripgrep. With live-preview."
+  (interactive)
+  (let ((consult-ripgrep "rg --null --ignore-case --type org --line-buffered --color=always --max-columns=500 --no-heading --line-number . -e ARG OPTS"))
+    (consult-ripgrep org-roam-directory)))
+
+(global-set-key (kbd "C-c rr") 'bms/org-roam-rg-search)
 
 (use-package consult-dir
        :ensure t
@@ -208,6 +239,9 @@
   :bind (("C-c a" . org-agenda)
 	 ("C-c l" . org-store-link))
   :hook (org-mode-hook . visual-line-mode)
+  :init
+  (setq org-return-follows-link t)
+  (setq org-startup-folded 'content)
   :config
   (setq org-log-done t)
   (setq org-startup-indented t)
@@ -243,11 +277,11 @@
   (setq org-roam-v2-ack t)
   (when (system-name? "localhost")
     (setq org-roam-database-connector 'sqlite3))
-  :custom  
-  (org-roam-directory (file-truename (if (system-name? "localhost")
-					 "/data/data/com.termux/files/home/storage/shared/stuff/notes/zk"
-				       "~/stuff/notes/zk")))
+  (setq org-roam-directory (file-truename (if (system-name? "localhost")
+					      "/data/data/com.termux/files/home/storage/shared/stuff/notes/zk"
+					    "~/stuff/notes/zk")))
   (org-roam-dailies-directory "daily/")
+  :custom  
   (define-key org-roam-mode-map [mouse-1] #'org-roam-visit-thing)
   (org-roam-file-exclude-regexp ".*~.*")
   (org-roam-capture-templates
