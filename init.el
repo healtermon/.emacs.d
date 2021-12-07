@@ -35,7 +35,12 @@
 (if (fboundp 'tool-bar-mode) (tool-bar-mode -1))
 (menu-bar-mode -1)
 
-(toggle-frame-fullscreen)
+
+(defun system-name? (name-string)
+  (string-equal system-name name-string))
+
+(when (not (system-name? "mango"))
+    (toggle-frame-fullscreen)) 
 
 ;; set buffer to auto-update when the associated file is written to externally, and set it to update in 1s
 (global-auto-revert-mode 1)
@@ -79,8 +84,6 @@
  '("melpa" . "https://melpa.org/packages/")
  t)
 
-(defun system-name? (name-string)
-  (string-equal system-name name-string))
 
 (require 'recentf);recent files browsing feature
 (setq recentf-max-saved-items 200
@@ -94,32 +97,70 @@
 			    ((or (system-name? "ASSES-UX310UQK") (system-name? "DURIAN") (system-name? "mango")) 'colemak-mod-dh)
 			    ((system-name? "localhost") 'qwerty)
 			    (t 'qwerty)))
-  (xah-fly-keys 1))
+  (xah-fly-keys 1)
+  (autoload 'View-scroll-half-page-up "view")
+  (autoload 'View-scroll-half-page-down "view")
+  (global-set-key (kbd "C-v") 'View-scroll-half-page-forward)
+  (global-set-key (kbd "M-v") 'View-scroll-half-page-backward))
 (use-package xah-find)
 
 (use-package which-key :config (which-key-mode))
 
+;; completion-helping stuff. I went from "ivy,counsel,swiper" to "vertico,orderless,consult,marginalia,embark" to make it more modular and compliant with default api. Guide at vertico's github readme
 
-;; ivy, counsel, swiper (completion, UIs, isearch replacement respectively)
-(use-package ivy
-  :defer 0.1
-  :diminish
-  :bind (("C-c C-r" . ivy-resume)
-         ("C-x B" . ivy-switch-buffer-other-window))
-  :custom
-  (ivy-count-format "(%d/%d) ")
-  (ivy-use-virtual-buffers t)
-  :config (ivy-mode))
-(use-package counsel
-  :after ivy
-  :config (counsel-mode))
-(use-package swiper
-  :after ivy
-  :bind (("C-s" . swiper)
-         ("C-r" . swiper)))
-(use-package ivy-prescient ; brings back the smartness of smex to ivy, makes search more predictable
-  :after counsel
-  :config (ivy-prescient-mode t))
+;; save minibuffer command history
+(use-package savehist
+  :init
+  (savehist-mode 1)
+  (setq history-length 10000)
+  (setq history-delete-duplicates t)
+  (setq savehist-save-minibuffer-history t))
+
+;; vertico is the vertical autocomplete selection menu
+(use-package vertico
+  :init (vertico-mode)
+  (setq vertico-scroll-margin 0) ;; no idea what this does, I don't see a difference
+  (setq vertico-count 20)
+  (setq vertico-resize t)
+  (setq vertico-cycle t))
+
+;; orderless is the completion style
+(use-package orderless
+  :init
+  ;; Configure a custom style dispatcher (see the Consult wiki)
+  ;; (setq orderless-style-dispatchers '(+orderless-dispatch)
+  ;;       orderless-component-separator #'orderless-escapable-split-on-space)
+  (setq completion-styles '(orderless)
+        completion-category-defaults nil
+        completion-category-overrides '((file (styles partial-completion)))))
+
+;; marginalia annotates the minibuffer like the margins in a book (look on the right side)
+(use-package marginalia
+  :bind (:map minibuffer-local-map
+	      ("M-A" . marginalia-cycle))
+  :init
+  (setq marginalia-max-relative-age 0)
+  (marginalia-mode 1)  )
+
+;; provides _good shit_ versions of common commands
+(use-package consult
+  :init
+  (global-set-key [remap switch-to-buffer] 'consult-buffer)
+  (global-set-key [remap find-file] 'consult-find)
+  :bind (("C-x r x" . consult-register)
+         ("C-x r b" . consult-bookmark))
+  )
+
+(use-package consult-dir
+       :ensure t
+       :bind (("C-x C-d" . consult-dir)
+              :map minibuffer-local-completion-map
+              ("C-x C-d" . consult-dir)
+              ("C-x C-j" . consult-dir-jump-file)
+	      )
+       )
+
+;; end completion-helping stuff
 
 ;; an amazing front-end to git
 (use-package magit)
@@ -198,48 +239,6 @@
 		("C-c n r" . org-roam-alias-remove)
 		)))
   :config
-  ;; (when (system-name? "localhost")
-    
-;;     (defun org-roam-db ()
-;;       "Entrypoint to the Org-roam sqlite database.
-;; Initializes and stores the database, and the database connection.
-;; Performs a database upgrade when required."
-;;       (unless (and (org-roam-db--get-connection)
-;;                    (emacsql-live-p (org-roam-db--get-connection)))
-;; 	(let ((init-db (not (file-exists-p org-roam-db-location))))
-;;           (make-directory (file-name-directory org-roam-db-location) t)
-;;           ;; (let ((conn (emacsql-sqlite org-roam-db-location)))
-;;           (let ((conn (emacsql-sqlite3 org-roam-db-location)))
-;;             (emacsql conn [:pragma (= foreign_keys ON)])
-;;             (set-process-query-on-exit-flag (emacsql-process conn) nil)
-;;             (puthash (expand-file-name org-roam-directory)
-;;                      conn
-;;                      org-roam-db--connection)
-;;             (when init-db
-;;               (org-roam-db--init conn))
-;;             (let* ((version (caar (emacsql conn "PRAGMA user_version")))
-;;                    (version (org-roam-db--upgrade-maybe conn version)))
-;;               (cond
-;;                ((> version org-roam-db-version)
-;; 		(emacsql-close conn)
-;; 		(user-error
-;; 		 "The Org-roam database was created with a newer Org-roam version.  "
-;; 		 "You need to update the Org-roam package"))
-;;                ((< version org-roam-db-version)
-;; 		(emacsql-close conn)
-;; 		(error "BUG: The Org-roam database scheme changed %s"
-;;                        "and there is no upgrade path")))))))
-;;       (org-roam-db--get-connection))
-;;     (defun org-roam-db--init (db)
-;;       "Initialize database DB with the correct schema and user version."
-;;       (emacsql-with-transaction db
-;; 	;; (emacsql db "PRAGMA foreign_keys = ON")
-;; 	(emacsql db [:pragma (= foreign_keys ON)])
-;; 	(pcase-dolist (`(,table ,schema) org-roam-db--table-schemata)
-;;           (emacsql db [:create-table $i1 $S2] table schema))
-;; 	(pcase-dolist (`(,index-name ,table ,columns) org-roam-db--table-indices)
-;;           (emacsql db [:create-index $i1 :on $i2 $S3] index-name table columns))
-;; 	(emacsql db (format "PRAGMA user_version = %s" org-roam-db-version)))))
   (org-roam-db-autosync-mode) ;; need org-roam-sqlite-available-p to be true
   )
 
@@ -408,12 +407,15 @@
 (when (or (system-name? "mango") (system-name? "nix-on-droid-placeholder-name"))
   (use-package nix-mode
     :mode "\\.nix\\'"))
-;; (when (system-name? "mango")
-;;   (use-package pdf-tools
-;;     :after tablist
-;;     :custom (add-hook 'TeX-after-compilation-finished-functions #'TeX-revert-document-buffer)
-
-;;     )
+(when (system-name? "mango")
+  (use-package pdf-tools
+    :defer t
+    :after tablist
+    :config
+    (pdf-tools-install)
+    ;; (setq-default pdf-view-display-size 'fit-page)
+    :custom (add-hook 'TeX-after-compilation-finished-functions #'TeX-revert-document-buffer)
+    ))
 
 (defun delete-file-visited-by-buffer (buffername)
   "Delete the file visited by the buffer named BUFFERNAME."
