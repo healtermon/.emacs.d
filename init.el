@@ -171,7 +171,7 @@
 	 )
   :init
   (global-set-key [remap switch-to-buffer] 'consult-buffer)
-  (global-set-key [remap find-file] 'consult-find)
+  ;; (global-set-key [remap find-file] 'consult-find)
   ;; Replace `multi-occur' with `consult-multi-occur', which is a drop-in replacement.
   (fset 'multi-occur #'consult-multi-occur)
   )
