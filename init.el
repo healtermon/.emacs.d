@@ -176,18 +176,6 @@
   (fset 'multi-occur #'consult-multi-occur)
   )
 
-;; from https://babbagefiles.xyz/org-roam-on-android/
-;; org-roam-rg-search - this is a much faster way to search Org-roam notes:
-;; requires the Selectrum+Consult setup immediately preceding.
-;; Use C-c r r to search notes via consult's ripgrep interface
-(defun bms/org-roam-rg-search ()
-  "Search org-roam directory using consult-ripgrep. With live-preview."
-  (interactive)
-  (let ((consult-ripgrep "rg --null --ignore-case --type org --line-buffered --color=always --max-columns=500 --no-heading --line-number . -e ARG OPTS"))
-    (consult-ripgrep org-roam-directory)))
-
-(global-set-key (kbd "C-c rr") 'bms/org-roam-rg-search)
-
 (use-package consult-dir
        :ensure t
        :bind (("C-x C-d" . consult-dir)
@@ -279,11 +267,11 @@
   (setq org-roam-v2-ack t)
   (when (system-name? "localhost")
     (setq org-roam-database-connector 'sqlite3))
-  (setq org-roam-directory (file-truename (if (system-name? "localhost")
-					      "/data/data/com.termux/files/home/storage/shared/stuff/notes/zk"
-					    "~/stuff/notes/zk")))
-  (org-roam-dailies-directory "daily/")
   :custom  
+  (org-roam-directory (file-truename (if (system-name? "localhost")
+					      "/data/data/com.termux/files/home/storage/shared/stuff/notes/zk/"
+					    "~/stuff/notes/zk/")))
+  (org-roam-dailies-directory "daily/")
   (define-key org-roam-mode-map [mouse-1] #'org-roam-visit-thing)
   (org-roam-file-exclude-regexp ".*~.*")
   (org-roam-capture-templates
@@ -315,6 +303,16 @@
 		)))
   :config
   (org-roam-db-autosync-mode) ;; need org-roam-sqlite-available-p to be true
+  ;; from https://babbagefiles.xyz/org-roam-on-android/
+  ;; org-roam-rg-search - this is a much faster way to search Org-roam notes:
+  ;; requires the Selectrum+Consult setup immediately preceding.
+  ;; Use C-c r r to search notes via consult's ripgrep interface
+  (defun bms/org-roam-rg-search ()
+    "Search org-roam directory using consult-ripgrep. With live-preview."
+    (interactive)
+    (let ((consult-ripgrep "rg --null --ignore-case --type org --line-buffered --color=always --max-columns=500 --no-heading --line-number . -e ARG OPTS"))
+      (consult-ripgrep org-roam-directory)))
+  (global-set-key (kbd "C-c rr") 'bms/org-roam-rg-search)
   )
 
 (when (system-name? "mango")
@@ -493,6 +491,12 @@
     :custom (add-hook 'TeX-after-compilation-finished-functions #'TeX-revert-document-buffer)
     ))
 
+(when (system-name? "localhost")
+  (use-package cyberpunk-theme
+    :init (load-theme 'cyberpunk)))
+
+
+
 (defun delete-file-visited-by-buffer (buffername)
   "Delete the file visited by the buffer named BUFFERNAME."
   (interactive "b")
@@ -515,6 +519,6 @@ buffer is not visiting a file."
                          (ido-read-file-name "Find file(as root): ")))
     (find-alternate-file (concat "/sudo:root@localhost:" buffer-file-name))))
 
-(when (system-name? "localhost")
-  (use-package cyberpunk-theme
-    :init (load-theme 'cyberpunk)))
+
+
+
