@@ -95,8 +95,8 @@
   :config
   ;; set-layout required before enabling
   (xah-fly-keys-set-layout (cond 
-			    ((or (system-name? "ASSES-UX310UQK") (system-name? "DURIAN") (system-name? "mango")) 'colemak-mod-dh)
-			    ((system-name? "localhost") 'qwerty)
+			    ((or (system-name? "ASSES-UX310UQK")  (system-name? "mango")) 'colemak-mod-dh)
+			    ((or (system-name? "localhost") (system-name? "DURIAN")) 'qwerty)
 			    (t 'qwerty)))
   (xah-fly-keys 1)
   (autoload 'View-scroll-half-page-up "view")
