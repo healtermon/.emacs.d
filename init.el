@@ -491,6 +491,7 @@ buffer is not visiting a file."
 
 (use-package all-the-icons ; for dashboard & dirvish & citar
 	:defer t
+	:config (setq all-the-icons-scale-factor 1.0)
 	)
 
 
