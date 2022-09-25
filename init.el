@@ -1,4 +1,8 @@
 
+
+;; when building packages:
+;; nix's cmake =/= homebrew's cmake, so (setenv "PATH" (concat "/opt/homebrew/bin/:" (getenv "PATH"))) from https://www.emacswiki.org/emacs/ExecPath
+
 ;; use-package-expand-minimally
 ;; keybindings to remember --------------------------------------------
 ;; save-buffer = SPC ;
@@ -27,10 +31,16 @@
 ;; - undo fu, undo between sessions
 ;; - ipretty, pretty-print sexps https://framagit.org/steckerhalter/ipretty
 ;; - org-latex-impatient, preview as you type latex in org-mode
+;; - company-box, sick company UI with icons and different colors for different backends
+;; - forge, for working with git forges
+;; - transmission
+;; - sgml-mode, for working with html files
+;; - emms
+;; - proof-general, for working with proof assistants, targetd at intermediate to experts
 
 ;; Cool packages that i want to install later on----------------------------
-;; - reveal-in-folder, open finder at location
-;; - terminal-here, open EXTERNAL terminal at location
+;; - persp-mode, workspace manager
+
 
 ;; Make startup faster by reducing the frequency of garbage
 ;; collection.  The default is 0.8MB.  Measured in bytes.
@@ -156,14 +166,14 @@ buffer is not visiting a file."
 (put 'narrow-to-region 'disabled nil)
 
 
-;; ;; Use a hook so the message doesn't get clobbered by other messages.
-;; (add-hook 'emacs-startup-hook
-;;           (lambda ()
-;;             (message "Emacs ready in %s with %d garbage collections."
-;;                      (format "%.2f seconds"
-;;                              (float-time
-;;                               (time-subtract after-init-time before-init-time)))
-;;                      gcs-done)))
+;; Use a hook so the message doesn't get clobbered by other messages.
+(add-hook 'emacs-startup-hook
+          (lambda ()
+            (message "Emacs ready in %s with %d garbage collections."
+                     (format "%.2f seconds"
+                             (float-time
+                              (time-subtract after-init-time before-init-time)))
+                     gcs-done)))
 
 
 
