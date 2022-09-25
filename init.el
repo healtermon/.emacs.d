@@ -205,11 +205,14 @@ buffer is not visiting a file."
     (with-current-buffer (url-retrieve-synchronously script 'silent 'inhibit-cookies)
       (goto-char (point-max)) (eval-print-last-sexp)))
   (load bootstrap nil 'nomessage)
-	
-  (straight-use-package 'bind-key) ; for `bind-keys' macro
 
-	;; wanna speed up your init? here!
-  (straight-use-package '(once :type git :host github :repo "emacs-magus/once")))
+	)
+
+(straight-use-package 'bind-key) ; for `bind-keys' macro
+
+;; wanna speed up your init? here!
+(straight-use-package '(once :type git :host github :repo "emacs-magus/once"))
+
 
 ;; install use-package
 (straight-use-package 'use-package)
@@ -254,8 +257,9 @@ buffer is not visiting a file."
 
 ;; save minibuffer command history
 (use-package savehist
+	:init
+	(savehist-mode 1)
   :config
-  (savehist-mode 1)
   (setq history-length 10000)
   (setq history-delete-duplicates t)
   (setq savehist-save-minibuffer-history t))
