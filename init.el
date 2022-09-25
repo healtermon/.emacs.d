@@ -301,6 +301,7 @@ buffer is not visiting a file."
   (setq marginalia-max-relative-age 0)
   (marginalia-mode 1))
 
+
 ;; provides _good shit_ versions of common commands and more
 (use-package consult
   :bind (("C-x M-:" . consult-complex-command)
@@ -373,6 +374,8 @@ buffer is not visiting a file."
   ;; auto-updating embark collect buffer
   :hook	(embark-collect-mode . consult-preview-at-point-mode))
 
+(use-package wgrep
+	:defer)
 
 
 (use-package helpful
