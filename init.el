@@ -514,6 +514,17 @@ buffer is not visiting a file."
   :hook (dired-mode . diredfl-mode)
   :config (set-face-attribute 'diredfl-dir-name nil :bold t))
 
+
+(use-package reveal-in-folder 					; Open Finder at location
+	:if +apexless 												; only works on macOS
+	:defer)
+(use-package terminal-here
+	:defer
+	:config
+	(setq terminal-here-mac-terminal-command 'iterm2)
+	)
+
+
 ;; colors hex colors
 (use-package rainbow-mode
   :hook (prog-mode . rainbow-mode))
@@ -577,7 +588,10 @@ buffer is not visiting a file."
 										"DONE(d)")))
   (when +apexless
 		(setq org-latex-create-formula-image-program 'dvisvgm)
-		(setq org-display-remote-inline-images 'cache)) ;; https://www.fromkk.com/posts/preview-latex-in-org-mode-with-emacs-in-macos/
+		(setq org-display-remote-inline-images 'cache);; https://www.fromkk.com/posts/preview-latex-in-org-mode-with-emacs-in-macos/
+		) 
+	
+
 	
   )
 ;;org-agenda-custom-commands is under custom-set-variables for convenience; the "Easy Customisation" updates to there.
@@ -1072,7 +1086,8 @@ buffer is not visiting a file."
 ;; fast math input
 (use-package cdlatex
 	:hook (((latex-mode LaTeX-mode) . turn-on-cdlatex)
-				 (org-mode . turn-on-org-cdlatex)) 
+				 ;; (org-mode . turn-on-org-cdlatex)
+				 ) 
 	)
 
 ;; automatic live math preview that gets out of your way
@@ -1080,6 +1095,7 @@ buffer is not visiting a file."
 	:hook ((latex-mode LaTeX-mode org-mode). xenops-mode)
 	:config
 	(setq xenops-reveal-on-entry t)
+	(setq xenops-math-image-scale-factor 1.25)
 	)
 
 
@@ -1184,7 +1200,7 @@ buffer is not visiting a file."
 (when (or (system-name? "mango") (system-name? "DURIAN"))
   (use-package guix))
 
-(when (or (system-name? "mango") (system-name? "nix-on-droid-placeholder-name"))
+(when (or (system-name? "mango") (system-name? "nix-on-droid-placeholder-name") +apexless)
   (use-package nix-mode
     :mode "\\.nix\\'"))
 
@@ -1328,3 +1344,61 @@ buffer is not visiting a file."
 (use-package racket-mode
 	:defer)
 
+(defun my-clear ()
+	"clear current comint buffer"
+  (interactive)
+  (let ((comint-buffer-maximum-size 0))
+    (comint-truncate-buffer)))
+
+;; #emacs@Libera.Chat <thuna`> for youtube specifically, elfeed + youtube-dl + mpv is pretty much all you need
+;; use this to get rss feed of a youtube channel:
+;; https://www.youtube.com/feeds/videos.xml?channel_id=<CHANNEL-ID>
+;; (use-package elfeed)
+
+(use-package circe ; currently i prefer ERC more! but circe is more modern and takes the lessons learnt from ERC
+	:defer)
+
+;; (use-package telega
+;; 	:defer
+;; 	:config
+;; 	;; (setq telega-server-libs-prefix "/opt/homebrew/Cellar/tdlib/HEAD-faa738d/")
+;; 	)
+
+(use-package nix-haskell-mode
+	:disabled ; enable for cabal projects and have a look
+  :hook (haskell-mode . nix-haskell-mode))
+
+(use-package eshell-vterm
+  :after eshell
+  :config
+  (eshell-vterm-mode))
+
+(use-package consult-org-roam ; keeping this around for live-preview when searching org-roam.
+	:defer
+	:custom
+  (consult-org-roam-grep-func #'consult-ripgrep)
+  ;; :config
+  ;; ;; Eventually suppress previewing for certain functions
+  ;; (consult-customize consult-org-roam-forward-links :preview-key (kbd "M-."))
+  ;; :bind
+  ;; ("C-c n e" . consult-org-roam-file-find)
+  ;; ("C-c n b" . consult-org-roam-backlinks)
+  ;; ("C-c n r" . consult-org-roam-search)
+	)
+(use-package all-the-icons-completion
+	:after (marginalia all-the-icons)
+	:init (all-the-icons-completion-mode)
+	:hook (marginalia-mode . all-the-icons-completion-marginalia-setup)
+	)
+
+(use-package devdocs
+	:defer
+	:init
+	(add-hook 'python-mode-hook
+						(lambda () (setq-local devdocs-current-docs '("python~3.10"))))
+	:bind ("C-h D" . devdocs-lookup))
+
+(use-package eshell
+	:defer
+	:init
+	(setq eshell-history-size 10000))
