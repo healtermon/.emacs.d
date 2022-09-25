@@ -655,6 +655,9 @@ buffer is not visiting a file."
 	(use-package magit-section)
   (org-roam-db-autosync-mode) ;; need org-roam-sqlite-available-p to be true
   (define-key org-roam-mode-map [mouse-1] #'org-roam-visit-thing) ;;TODO org-roam-mode-map is deprecated, fix this
+	(use-package consult-org-roam
+		:config
+		(consult-org-roam-mode 1)) 
   )
 
 
@@ -793,7 +796,7 @@ buffer is not visiting a file."
 (use-package project)
 (use-package eldoc)
 (use-package eglot
-  :hook ((python-mode c-mode-hook c++-mode-hook rust-mode
+  :hook ((python-mode c-mode-hook c++-mode-hook rust-mode nix-mode
 											;; LaTeX-mode
 											) . eglot-ensure)
   :config
@@ -864,14 +867,14 @@ buffer is not visiting a file."
 ;; for programming in Scheme, use geiser
 (use-package geiser-guile
   :defer t
-  :commands geiser-guile); geiser-guile to connect to guile repo!
+  :commands geiser-guile); geiser-guile to connect to guile repl!
 (use-package geiser-racket
   :defer t
   :commands geiser-racket); for racket if you download minimal racket you need to "raco pkg install compatibility-lib"
 
 
 (use-package python
-  :straight (:type built-in)
+	:straight (:type built-in)
   :mode ("\\.py\\'" . python-mode)
   :interpreter ("python" . python-mode)
   :config
@@ -879,6 +882,10 @@ buffer is not visiting a file."
   (setq python-indent-guess-indent-offset-verbose nil)
   (setq python-indent-offset 4)
 	)
+(use-package python-mode
+	:after python)
+
+
 
 (use-package pyenv ; what does this do?
 	:defer t)
@@ -1003,6 +1010,7 @@ buffer is not visiting a file."
 
 (use-package vterm
 	:defer t ; package already has basic commands autoloaded
+	:custom (vterm-install t)
 	)
 
 
