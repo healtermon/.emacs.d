@@ -19,6 +19,7 @@
 ;; SPC l l  narrow-to-region & SPC l j to widen, basically edit only in region
 ;; SPC RET = execute-extended-command
 
+;; Computers this file supports ------------------------------------------------------------
 ;; system-type 'darwin, system-name Apexless/Apexless.local/??? = macbook pro 14 m1 pro
 ;; system-name DURIAN = poly laptop running Manjaro
 ;; system-name mango = my own desktop running NixOS
@@ -37,10 +38,20 @@
 ;; - sgml-mode, for working with html files
 ;; - emms
 ;; - proof-general, for working with proof assistants, targetd at intermediate to experts
+;; - elpher, a gopher and gemini client
+;; - compile.el
+;; - lingva, interface with google translate
+;; - mw-thesaurus, merrian webster thesaurus usage, donwloaded in org format
+;; - spell-fu, spell checking without external dependencies (???)
+;; - org-ql, query language for org files. I don't know why you would want this when there's ripgrep, maybe a nicer ripgrep for org files?
+;; - 
 
 ;; Cool packages that i want to install later on----------------------------
 ;; - persp-mode, workspace manager
-
+;; - highlight-symbol-mode, highlights all occurances of the symbol under point
+;; - dumb-jump, for when u don't have lsp and want to jump to definitions
+;; - highlight-symbols-mode, highlighting all occurances of a symbol
+;; - visual-regexps & visual-regexps-steroids, the first for live highlighting of regexps, replacing replace-regexp w/ visual-regexp Before installing test whether I need it or not!
 
 ;; Make startup faster by reducing the frequency of garbage
 ;; collection.  The default is 0.8MB.  Measured in bytes.
@@ -267,7 +278,8 @@ buffer is not visiting a file."
 ;; vertico is the vertical autocomplete selection menu
 (use-package vertico
 	:straight (vertico :files (:defaults "extensions/*")
-										 :includes (vertico-indexed vertico-flat vertico-grid vertico-mouse vertico-quick vertico-buffer vertico-repeat vertico-reverse vertico-directory vertico-multiform vertico-unobtrusive )) 	:bind (:map vertico-map ("M-DEL" . vertico-directory-delete-word))
+										 :includes (vertico-indexed vertico-flat vertico-grid vertico-mouse vertico-quick vertico-buffer vertico-repeat vertico-reverse vertico-directory vertico-multiform vertico-unobtrusive ))
+	:bind (:map vertico-map ("M-DEL" . vertico-directory-delete-word))
   :init
   (vertico-mode)
   (setq vertico-count (if (system-name? "localhost") 10 20))
@@ -291,7 +303,7 @@ buffer is not visiting a file."
                       (+ consult--tofu-char consult--tofu-range -1)))
       args))
   (advice-add #'orderless-regexp :filter-args #'fix-dollar)
-  (advice-add #'prescient-regexp-regexp :filter-args #'fix-dollar))
+  )
 
 ;; marginalia annotates the minibuffer like the margins in a book (look on the right side)
 (use-package marginalia
@@ -546,7 +558,7 @@ buffer is not visiting a file."
 
 
 
-;; highlights diffs in the margins
+;; highlights diffs in the margins. If you want nicer ones like in vscode, https://ianyepan.github.io/posts/emacs-git-gutter/
 (use-package diff-hl
 	:hook ((after-init . global-diff-hl-mode)
 				 (magit-pre-refresh-hook . diff-hl-magit-pre-refresh)
@@ -561,7 +573,7 @@ buffer is not visiting a file."
 (use-package org
   :bind (("C-c a" . org-agenda)
 				 ("C-c l" . org-store-link))
-  :hook ((org-mode . org-toggle-pretty-entities)
+  :hook (;; (org-mode . org-toggle-pretty-entities)
 				 (org-mode . visual-line-mode)
 				 ;; (org-mode . +org-font-setup)
 				 )
@@ -800,7 +812,9 @@ buffer is not visiting a file."
 											;; LaTeX-mode
 											) . eglot-ensure)
   :config
+	(setq eglot-events-buffer-size 0)	;; In the name of speed, this stops eglot from logging the json events of lsp server
   ;; (setq completion-category-overrides '((eglot (styles orderless))))
+	;; if you wanna have yasnippet completions show up while using eglot either corfu/company: https://stackoverflow.com/questions/72601990/how-to-show-suggestions-for-yasnippets-when-using-eglot
 	)
 
 
@@ -911,7 +925,7 @@ buffer is not visiting a file."
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(custom-safe-themes
-	 '("e9d47d6d41e42a8313c81995a60b2af6588e9f01a1cf19ca42669a7ffd5c2fde" default))
+	 '("22c213e81a533c259127302ef1e0f2d1f332df83969a1f9cf6d5696cbe789543" "931ee45708e894d5233fc4a94ae0065c765c1a0aeb1bd8d9feee22f5622f44b4" "02f57ef0a20b7f61adce51445b68b2a7e832648ce2e7efb19d217b6454c1b644" "e9d47d6d41e42a8313c81995a60b2af6588e9f01a1cf19ca42669a7ffd5c2fde" default))
  '(org-agenda-custom-commands
 	 '(("c" "To-dos of Noted Life"
 			((tags-todo "+health"
@@ -1053,7 +1067,7 @@ buffer is not visiting a file."
 	:diminish cargo-minor-mode)
 
 
-;; for tex info, digestif, the LaTeX lsp, creator can't live without this
+;; for tex info. The LaTeX lsp digestif's creator can't live without this
 (add-to-list 'Info-directory-list "/usr/local/texlive/2022/texmf-dist/doc/info/")
 
 
@@ -1061,6 +1075,7 @@ buffer is not visiting a file."
 	:straight auctex
 	:mode ("\\.tex\\'" . latex-mode)
 	:config
+	(require 'texmathp) ; Needed for checking whether in math environments. TODO test this lol
 	(setq bibtex-dialect 'biblatex)
 	(setq TeX-auto-save t)
 	(setq TeX-parse-self t)
@@ -1095,7 +1110,7 @@ buffer is not visiting a file."
 (use-package cdlatex
 	:hook (((latex-mode LaTeX-mode) . turn-on-cdlatex)
 				 ;; (org-mode . turn-on-org-cdlatex)
-				 ) 
+				 )
 	)
 
 ;; automatic live math preview that gets out of your way
@@ -1393,12 +1408,13 @@ buffer is not visiting a file."
   ;; ("C-c n b" . consult-org-roam-backlinks)
   ;; ("C-c n r" . consult-org-roam-search)
 	)
-(use-package all-the-icons-completion
+(use-package all-the-icons-completion ; adds icons to minibuffer completion
 	:after (marginalia all-the-icons)
 	:init (all-the-icons-completion-mode)
-	:hook (marginalia-mode . all-the-icons-completion-marginalia-setup)
+	:hook (marginalia-mode . all-the-icons-completion-marginalia-setup) ; makes the mode follow marginalia-mode when on and off
 	)
 
+;; HOW TO USE: C-u extended-command devdocs to... what? i'm tooo sleepy now... goodnight.
 (use-package devdocs
 	:defer
 	:init
@@ -1410,3 +1426,39 @@ buffer is not visiting a file."
 	:defer
 	:init
 	(setq eshell-history-size 10000))
+
+(use-package emms
+	:defer
+	:config
+	(emms-minimalistic))
+
+(use-package vundo
+	:defer
+	:config
+	(setq vundo-glyph-alist vundo-unicode-symbols)
+  (set-face-attribute 'vundo-default nil :family "Unifont")
+	)
+(use-package magit-delta ;; syntax hightlighting with delta(command-line program) in magit diffs
+  :hook (magit-mode . magit-delta-mode))
+
+(use-package google-this
+	:commands (google-this-translate-query-or-region) ;; there's no autoload for just this 1 command, but there is for the 15 other commands. Why?
+	:defer)
+
+;; (use-package haskell-mode);; for haskell setup, refer to https://github.com/patrickt/emacs#haskell
+
+;; ;; (use-package conda)  ;; I don't use anaconda environments
+;; (use-package virtualenvwrapper)
+;; (use-package jupyter)
+;; (org-babel-do-load-languages
+;;  'org-babel-load-languages
+;;  '((emacs-lisp . t) ;; Other languages
+;;    (shell . t)
+;;    ;; Python & Jupyter
+;;    (python . t)
+;;    (jupyter . t)))
+;; (org-babel-jupyter-override-src-block "python")
+;; ;;(setq ob-async-no-async-languages-alist '("python" "jupyter-python")) ; if you use ob-async
+
+(use-package doom-themes)
+(use-package ef-themes)

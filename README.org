@@ -1,7 +1,7 @@
 * My Emacs Config
-Welcome to my emacs setup! Sorry it's not literate, but hopefully it helps!
+Welcome to my emacs setup! Sorry it's not literate, and always in a mess, but hopefully it helps!
 
-** File explanation:
+** What each file is for
 - early-init.el is mainly to disable garbage collection during startup so that the init loads faster 
 - init.el is the 1 massive config file. download it and use emacs to browse it!
 - templates is for tempel.el, have a look at the cryptic snippet templates written in lisp data!
