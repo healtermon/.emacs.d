@@ -651,14 +651,50 @@ buffer is not visiting a file."
     (interactive)
     (let ((consult-ripgrep "rg --null --ignore-case --type org --line-buffered --color=always --max-columns=500 --no-heading --line-number . -e ARG OPTS"))
       (consult-ripgrep org-roam-directory)))
-  :custom  
+
+	;; Excludes all nodes
+  ;; 1. under the .stversions directory, or
+  ;; 2. with the "NO_ORG_ROAM" tag from the org-roam database.
+  (setq org-roam-db-node-include-function
+        (lambda ()
+          (and
+           (not (string-match-p (regexp-quote ".stversions") (buffer-file-name)))
+           (not (member "NO_ORG_ROAM" (org-get-tags))))))
+  (setq org-agenda-hide-tags-regexp "NO_ORG_ROAM")
+	
+  :custom
+	;; (org-roam-completion-everywhere t)
+  (org-roam-node-display-template
+   (concat "${type:20} ${title:*} "
+           (propertize "${tags:20}" 'face 'org-tag)))
   (org-roam-file-exclude-regexp ".*~.*")
   (org-roam-capture-templates
-   '(("d" "default without ${slug}" plain
-      "%?"
-      :if-new (file+head "%<%Y%m%d%H%M%S>.org"
+	 '(("d" "default without ${slug}" plain
+			"%?"
+			:if-new (file+head "%<%Y%m%d%H%M%S>.org"
 												 "#+title: ${title}\n")
-      :unnarrowed t)))
+			:unnarrowed t)
+		 ("c" "contacts" plain ; why I put contacts here instead of org-contacts is so that I won't read about another person when searching someone, as org-contacts makes you keep it all in 1 file. I can replicate search with ripgrep at certain file.
+			"%?"
+			:if-new (file+head "contacts/%<%Y%m%d%H%M%S>.org"
+												 ":PROPERTIES:
+:DATEFIRSTMET: %^t
+:PLACEFIRSTMET:
+:BIRTHDAY:
+:END:
+#+title: ${title}
+Likes:
+Dislikes:
+Hobbies:
+Jobs:
+Addresses:
+Emails:
+Dreams:
+Views on Life:
+Contact Mediums:
+Notes:
+")
+			:unnarrowed t)))
   (org-roam-dailies-capture-templates
    '(("d" "default" entry
       "* %?"
