@@ -618,11 +618,18 @@ buffer is not visiting a file."
 		(setq org-latex-create-formula-image-program 'dvisvgm)
 		(setq org-display-remote-inline-images 'cache);; https://www.fromkk.com/posts/preview-latex-in-org-mode-with-emacs-in-macos/
 		) 
-	
+	(setq org-image-actual-width nil)
 
 	
   )
 ;;org-agenda-custom-commands is under custom-set-variables for convenience; the "Easy Customisation" updates to there.
+
+(use-package org-download
+	:after org
+	:init
+	(setq org-download-method 'directory)
+	(setq-default org-download-image-dir "~/stuff/notes/zk/p/")
+	)
 
 
 (use-package org-roam
