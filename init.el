@@ -877,7 +877,7 @@ Notes:
 (use-package project)
 (use-package eldoc)
 (use-package eglot
-  :hook ((python-mode c-mode-hook c++-mode-hook rust-mode nix-mode
+	:hook ((python-mode c-mode-hook c++-mode-hook rust-mode nix-mode
 											;; LaTeX-mode
 											) . eglot-ensure)
   :config
@@ -957,17 +957,20 @@ Notes:
 
 
 (use-package python
-	:straight (:type built-in)
+	;; DON'T confuse this with python-mode.el, they are 2 different packages:
+	;; python.el is built-in and has better integration with emacs, while
+	;; python-mode.el is a mess in terms of fucntions to call.
+	;; Having both installed makes it very confusing.
+	:straight
   :mode ("\\.py\\'" . python-mode)
   :interpreter ("python" . python-mode)
+	:bind (:map python-mode-map
+							("C-c e" . python-shell-send-statement))
   :config
   ;; Remove guess indent python message
   (setq python-indent-guess-indent-offset-verbose nil)
   (setq python-indent-offset 4)
 	)
-(use-package python-mode
-	:after python)
-
 
 
 (use-package pyenv ; what does this do?
