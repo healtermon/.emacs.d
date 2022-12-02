@@ -599,8 +599,8 @@ buffer is not visiting a file."
   (setq org-startup-folded 'content)
   :config
 	;; (setq org-hide-emphasis-markers t)
+	(setq org-hide-leading-stars t)
   (setq org-log-done t)
-  (setq org-startup-indented t)
   (setq org-startup-indented t) ; with prot's themes, org-indent-mode adds additional line spacing that makes me unhappy as less information can be displayed on-screen. I believe his themes bring more convenience than org-indent-mode.
   (setq org-agenda-files (list "~/stuff/notes/zk/life.org"
 															 "~/stuff/notes/calendars/healtermon-gmail.org"))
@@ -997,7 +997,7 @@ Notes:
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(custom-safe-themes
-	 '("22c213e81a533c259127302ef1e0f2d1f332df83969a1f9cf6d5696cbe789543" "931ee45708e894d5233fc4a94ae0065c765c1a0aeb1bd8d9feee22f5622f44b4" "02f57ef0a20b7f61adce51445b68b2a7e832648ce2e7efb19d217b6454c1b644" "e9d47d6d41e42a8313c81995a60b2af6588e9f01a1cf19ca42669a7ffd5c2fde" default))
+	 '("c3af4ee7a19412fb5a032ac287041171784abf23eb5e3107948388bc04ebc70b" "22c213e81a533c259127302ef1e0f2d1f332df83969a1f9cf6d5696cbe789543" "931ee45708e894d5233fc4a94ae0065c765c1a0aeb1bd8d9feee22f5622f44b4" "02f57ef0a20b7f61adce51445b68b2a7e832648ce2e7efb19d217b6454c1b644" "e9d47d6d41e42a8313c81995a60b2af6588e9f01a1cf19ca42669a7ffd5c2fde" default))
  '(org-agenda-custom-commands
 	 '(("c" "To-dos of Noted Life"
 			((tags-todo "+health"
@@ -1040,9 +1040,6 @@ Notes:
  ((system-name? "mango")
   (custom-set-faces
    '(default ((t (:family "mononoki" :foundry "UKWN"   :height 113 :width normal))))))
- (+apexless
-  (custom-set-faces
-   '(default ((t ( :height 140 :foundry "nil" :family "mononoki Nerd Font"))))))
  )
 ;; when you wanna fix the font on apexless not being displayed probably 'cuz of dashboard, this might help: http://xahlee.info/emacs/emacs/emacs_list_and_set_font.html
 
@@ -1206,10 +1203,10 @@ Notes:
 (use-package org-appear
 	:defer t
 	:after org
-	;; :hook (org-mode . org-appear-mode)
+	:hook (org-mode . org-appear-mode)
 	;; hook it with org-modern if possible, 'cuz I want to see everything with default prefs in life.org
 	:config
-	(setq org-appear-autoemphasis t				;the only one that's on by default, like for /italic/, _underline_, +strikethrough+, etc.
+	(setq org-appear-autoemphasis nil				;the only one that's on by default, like for /italic/, _underline_, +strikethrough+, etc.
 				org-appear-autoentities t
 				org-appear-autolinks t
 				org-appear-autosubmarkers t))
@@ -1219,72 +1216,6 @@ Notes:
 	:hook (org-mode . valign-mode)
 	:init (setq valign-fancy-bar t))
 
-
-
-;; from https://bytemeta.vip/index.php/repo/alexluigit/emacs-grandview
-(defvar +font-size 140)
-(defvar +default-font "mononoki Nerd Font")
-(defvar +fixed-font "mononoki Nerd") ; for info
-(defvar +variable-font "Sarasa Mono SC"); variable-pitch font
-(defvar +CJK-font "LXGW WenKai Mono") ; Chinese, Japanese, Korean characters
-
-;;;###autoload
-(defun +font-setup (&optional frame)
-  "Setup default/fixed-pitch/variable-pitch/zh-font."
-  (custom-theme-set-faces
-   'user
-   '(font-lock-keyword-face ((t (:slant italic :foreground "Cyan1")))); remember there's the color set here
-   ;; '(font-lock-variable-name-face ((t (:weight demibold))))
-   ;; '(font-lock-function-name-face ((t (:weight demibold))))
-   `(default ((t (:font ,(font-spec :family +default-font) :height ,+font-size))))
-   `(fixed-pitch ((t (:font ,(font-spec :family +fixed-font) :height ,+font-size))))
-   `(variable-pitch ((t (:font ,(font-spec :family +variable-font)
-                               :height ,+font-size  )))))
-  (dolist (charset '(kana han cjk-misc bopomofo))
-    (set-fontset-font t charset (font-spec :family +CJK-font))))
-
-;;;###autoload
-(defun +font-cn-set-title (beg end)
-  (interactive "r")
-  (remove-overlays beg end)
-  (let ((ov (make-overlay beg end)))
-    (overlay-put ov 'display '(height 1.5))))
-
-;;;###autoload
-(defun +font-cn-set-quote (beg end)
-  (interactive "r")
-  (remove-overlays beg end)
-  (let ((ov (make-overlay beg end)))
-    (overlay-put ov 'face 'font-lock-comment-face)))
-
-(setq +font-size 141)
-(setq +default-font "mononoki Nerd Font")
-(setq +fixed-font "Sarasa Mono SC") 
-(setq +variable-font "ETBembo")
-(setq +CJK-font "LXGW WenKai Mono")
-
-
-;;;###autoload
-(defun +org-font-setup ()
-  "Setup variable-pitch fonts for org-mode."
-  (variable-pitch-mode)
-  (let ((variable-pitch `(:font ,+variable-font))
-        (default `(:font ,+default-font)))
-    (custom-theme-set-faces
-     'user
-     `(org-level-1 ((t (,@variable-pitch :height 1.5))))
-     `(org-level-2 ((t (,@variable-pitch :height 1.4))))
-     `(org-level-3 ((t (,@variable-pitch :height 1.3))))
-     `(org-level-4 ((t (,@variable-pitch :height 1.2))))
-     `(org-table ((t (,@default))))
-     `(org-verbatim ((t (,@default))))
-     `(org-formula ((t (,@default))))
-     `(org-code ((t (,@default))))
-     `(org-block ((t (,@default))))
-     `(org-block-begin-line ((t (:foreground "#606060" :extend t))))
-     '(org-tag ((t (:inherit (shadow) :weight bold :height 0.8)))))))
-
-(+font-setup)
 
 (use-package matlab-mode
 	:defer t)
@@ -1543,8 +1474,6 @@ Notes:
 ;; (org-babel-jupyter-override-src-block "python")
 ;; ;;(setq ob-async-no-async-languages-alist '("python" "jupyter-python")) ; if you use ob-async
 
-(use-package doom-themes)
-(use-package ef-themes)
 (use-package elpher ;a gopher and gemini client, super simple to use
 	:defer)
 
@@ -1569,6 +1498,7 @@ Notes:
 ;; calendar id:healtermon@gmail.com
 ;; public URL to calendar:https://calendar.google.com/calendar/embed?src=healtermon%40gmail.com&ctz=Asia%2FSingapore
 ;; public address in iCal format:https://calendar.google.com/calendar/ical/healtermon%40gmail.com/public/basic.ics
+
 
 (use-package ement
   :straight (:type git
@@ -1609,3 +1539,197 @@ Notes:
 
 
 
+;; from https://bytemeta.vip/index.php/repo/alexluigit/emacs-grandview
+(defvar +font-size 140)
+(defvar +default-font "mononoki Nerd Font")
+(defvar +fixed-font "mononoki Nerd Font") ; for info
+(defvar +variable-font "Sarasa Mono SC"); variable-pitch font
+(defvar +CJK-font "LXGW WenKai Mono") ; Chinese, Japanese, Korean characters
+
+;;;###autoload
+(defun +font-setup (&optional frame)
+  "Setup default/fixed-pitch/variable-pitch/zh-font."
+  (custom-theme-set-faces
+   'user
+   '(font-lock-keyword-face ((t (:slant italic)))); remember there's the color set here
+   '(font-lock-variable-name-face ((t (:weight demibold))))
+   '(font-lock-function-name-face ((t (:weight demibold))))
+   `(default ((t (:font ,(font-spec :family +default-font) :height ,+font-size))))
+   `(fixed-pitch ((t (:font ,(font-spec :family +fixed-font) :height ,+font-size))))
+   `(variable-pitch ((t (:font ,(font-spec :family +variable-font)
+                               :height ,+font-size  )))))
+  (dolist (charset '(kana han cjk-misc bopomofo))
+    (set-fontset-font t charset (font-spec :family +CJK-font))))
+;; (set-face-attribute 'fixed-pitch nil :family "Hack" :height 1.0)
+;; TODO figure out how to fix this. The problem comes when fixed-width font is different from default font. I think it's 'cuz of the stars being a  different font or something?
+
+;;;###autoload
+(defun +font-cn-set-title (beg end)
+  (interactive "r")
+  (remove-overlays beg end)
+  (let ((ov (make-overlay beg end)))
+    (overlay-put ov 'display '(height 1.5))))
+
+;;;###autoload
+(defun +font-cn-set-quote (beg end)
+  (interactive "r")
+  (remove-overlays beg end)
+  (let ((ov (make-overlay beg end)))
+    (overlay-put ov 'face 'font-lock-comment-face)))
+
+(setq +font-size 141)
+(setq +default-font "mononoki Nerd Font")
+;; (setq +fixed-font "Sarasa Mono SC") ; I can't use this as org-indent-mode will fuck up 'cuz the size of this font is different from mononoki, creating fucked up line spacing and alignment in life.org. This fix didn't work either: https://github.com/jdtsmith/org-modern-indent/issues/1#issuecomment-1153065940
+(setq +fixed-font "mononoki Nerd Font") 
+(setq +variable-font "ETBembo")
+(setq +CJK-font "LXGW WenKai Mono")
+
+(+font-setup)
+
+;;;###autoload
+(defun +org-font-setup ()
+  "Setup variable-pitch fonts for org-mode."
+  (variable-pitch-mode)
+  (let ((variable-pitch `(:font ,+variable-font))
+        (default `(:font ,+default-font)))
+    (custom-theme-set-faces
+     'user
+     `(org-level-1 ((t (,@variable-pitch :height 1.5))))
+     `(org-level-2 ((t (,@variable-pitch :height 1.4))))
+     `(org-level-3 ((t (,@variable-pitch :height 1.3))))
+     `(org-level-4 ((t (,@variable-pitch :height 1.2))))
+     `(org-table ((t (,@default))))
+     `(org-verbatim ((t (,@default))))
+     `(org-formula ((t (,@default))))
+     `(org-code ((t (,@default))))
+     `(org-block ((t (,@default))))
+     `(org-block-begin-line ((t (:foreground "#606060" :extend t))))
+     '(org-tag ((t (:inherit (shadow) :weight bold :height 0.8)))))))
+
+
+(once '(:hooks after-init-hook)
+	;; Make customisations that affect Emacs faces BEFORE loading a theme
+	;; (any change needs a theme re-load to take effect).
+	(use-package standard-themes
+		:straight (:type git
+										 :host github
+										 :repo "protesilaos/standard-themes"))
+	
+	;; Read the doc string of each of those user options.  These are some
+	;; sample values.
+	(setq standard-themes-bold-constructs t
+				standard-themes-italic-constructs t
+				standard-themes-mixed-fonts nil
+				standard-themes-variable-pitch-ui nil
+				standard-themes-mode-line-accented t
+
+				standard-themes-fringes nil
+
+				;; The following accept lists of properties
+				standard-themes-links '(neutral-underline faint)
+				;; standard-themes-region '(no-extend neutral intense)
+				standard-themes-prompts '(bold italic)
+				
+				;; ;; more complex alist to set weight, height, and optional
+				;; ;; `variable-pitch' per heading level (t is for any level not
+				;; ;; specified):
+				standard-themes-headings
+				'((t . (default 1)))
+				)
+
+	;; Disable all other themes to avoid awkward blending:
+	(mapc #'disable-theme custom-enabled-themes)
+
+
+	(set-face-attribute 'fixed-pitch nil :family "Hack" :height 1.0)
+	(defun my-standard-themes-custom-faces ()
+		"My customizations on top of the Standard themes.
+This function is added to the `standard-themes-post-load-hook'."
+		(set-background-color "#212121")
+		)
+
+	;; Using the hook lets our changes persist when we use the commands
+	;; `standard-themes-toggle', `standard-themes-load-dark',
+	;; `standard-themes-load-light'.
+	(add-hook 'standard-themes-post-load-hook #'my-standard-themes-custom-faces)
+
+	(standard-themes-load-dark)
+	)
+
+(use-package minions
+	:hook (after-init . minions-mode))
+
+(use-package doom-modeline
+	:hook (after-init . doom-modeline-mode)
+	:config
+	(custom-set-faces
+   '(mode-line ((t ( :height 0.8))))
+   '(mode-line-active ((t ( :height 0.8)))) ; For 29+
+   '(mode-line-inactive ((t ( :height 0.8)))))
+	;; If non-nil, cause imenu to see `doom-modeline' declarations.
+	;; This is done by adjusting `lisp-imenu-generic-expression' to
+	;; include support for finding `doom-modeline-def-*' forms.
+	;; Must be set before loading doom-modeline.
+	(setq doom-modeline-support-imenu t)
+	(setq doom-modeline-height 1)
+	;; (setq doom-modeline-project-detection 'auto)
+	;; (setq doom-modeline-buffer-file-name-style 'auto)
+	(setq doom-modeline-enable-word-count t)
+	(setq doom-modeline-time-icon t)
+	(setq doom-modeline-minor-modes t)
+
+	;; ;; If non-nil, only display one number for checker information if applicable.
+	;; (setq doom-modeline-checker-simple-format t)
+
+	;; ;; Whether display the workspace name. Non-nil to display in the mode-line.
+	;; (setq doom-modeline-workspace-name t)
+
+	;; ;; Whether display the perspective name. Non-nil to display in the mode-line.
+	;; (setq doom-modeline-persp-name t)
+
+	;; ;; If non nil the default perspective name is displayed in the mode-line.
+	;; (setq doom-modeline-display-default-persp-name nil)
+
+	;; ;; If non nil the perspective name is displayed alongside a folder icon.
+	;; (setq doom-modeline-persp-icon t)
+
+	;; ;; Whether display the GitHub notifications. It requires `ghub' package.
+	;; (setq doom-modeline-github nil)
+
+	;; ;; The interval of checking GitHub.
+	;; (setq doom-modeline-github-interval (* 30 60))
+
+	;; ;; Whether display the mu4e notifications. It requires `mu4e-alert' package.
+	;; (setq doom-modeline-mu4e nil)
+	;; ;; also enable the start of mu4e-alert
+	;; (mu4e-alert-enable-mode-line-display)
+
+	;; (setq doom-modeline-gnus t)
+
+	;; Whether gnus should automatically be updated and how often (set to 0 or smaller than 0 to disable)
+	(setq doom-modeline-gnus-timer -1)
+
+	;; ;; Wheter groups should be excludede when gnus automatically being updated.
+	;; (setq doom-modeline-gnus-excluded-groups '("dummy.group"))
+	;; (setq doom-modeline-irc t) ; irc unread messages number 
+	;; (setq doom-modeline-irc-stylize 'identity) ; convert some IRC buffers to their font-awesome icon
+
+	;; ;; Change the executables to use for the language version string
+	;; (setq doom-modeline-env-python-executable "python") ; or `python-shell-interpreter'
+	;; (setq doom-modeline-env-ruby-executable "ruby")
+	;; (setq doom-modeline-env-perl-executable "perl")
+	;; (setq doom-modeline-env-go-executable "go")
+	;; (setq doom-modeline-env-elixir-executable "iex")
+	;; (setq doom-modeline-env-rust-executable "rustc")
+
+	;; ;; What to display as the version while a new one is being loaded
+	;; (setq doom-modeline-env-load-string "...")
+
+	;; ;; By default, almost all segments are displayed only in the active window. To
+	;; ;; display such segments in all windows, specify e.g.
+	;; (setq doom-modeline-always-visible-segments '(mu4e irc))
+
+	;; ;; Hooks that run before/after the modeline version string is updated
+	;; (setq doom-modeline-before-update-env-hook nil)
+	;; (setq doom-modeline-after-update-env-hook nil)
+	)
