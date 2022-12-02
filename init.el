@@ -210,7 +210,12 @@ buffer is not visiting a file."
   (setq straight-use-package-by-default t ; makes each use-package form also invoke straight.el to install the package, unless otherwise specified
         straight-vc-git-default-clone-depth 1
         straight-check-for-modifications '(check-on-save find-when-checking)
-        straight-repository-branch "develop")
+        straight-repository-branch "develop"
+				straight-hosts '((github "github.com" ".git")
+												 (gitlab "gitlab.com" ".git")
+												 (sourcehut "git.sr.ht" ".git"); I still don't know how to get it to work
+												 (bitbucket "bitbucket.com" ".git")
+												 (codeberg "codeberg.org" ".git")))
 	
 	;; modified straight bootstrap code
   (unless (file-exists-p bootstrap)
