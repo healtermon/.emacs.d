@@ -1449,15 +1449,26 @@ Notes:
 ;; use this to get rss feed of a youtube channel:
 ;; https://www.youtube.com/feeds/videos.xml?channel_id=<CHANNEL-ID>
 ;; (use-package elfeed)
+;; (use-package elfeed-tube)
 
 (use-package circe ; currently i prefer ERC more! but circe is more modern and takes the lessons learnt from ERC
 	:defer)
 
-;; (use-package telega
-;; 	:defer
-;; 	:config
-;; 	;; (setq telega-server-libs-prefix "/opt/homebrew/Cellar/tdlib/HEAD-faa738d/")
-;; 	)
+(use-package erc
+	:straight (:type built-in)
+	:defer
+	:config
+	(setq erc-nick "healtermon")
+	)
+
+(use-package telega
+	:defer
+	:init
+	(setq telega-server-libs-prefix "/var/empty/local/")	
+	;; (setq telega-server-libs-prefix "/opt/homebrew/Cellar/tdlib/HEAD-faa738d/")
+	;; :config
+	
+	)
 
 (use-package nix-haskell-mode
 	:disabled ; enable for cabal projects and have a look
@@ -1486,7 +1497,7 @@ Notes:
 	:hook (marginalia-mode . all-the-icons-completion-marginalia-setup) ; makes the mode follow marginalia-mode when on and off
 	)
 
-;; HOW TO USE: C-u extended-command devdocs to... what? i'm tooo sleepy now... goodnight.
+;; HOW TO USE: C-u extended-command devdocs to set new default docset to search, otherwise just search normally with command devdocs-lookup
 (use-package devdocs
 	:defer
 	:init
@@ -1534,6 +1545,8 @@ Notes:
 
 (use-package doom-themes)
 (use-package ef-themes)
+(use-package elpher ;a gopher and gemini client, super simple to use
+	:defer)
 
 
 (setq calendar-date-style 'iso) ;; YYYY/mm/dd
@@ -1556,4 +1569,43 @@ Notes:
 ;; calendar id:healtermon@gmail.com
 ;; public URL to calendar:https://calendar.google.com/calendar/embed?src=healtermon%40gmail.com&ctz=Asia%2FSingapore
 ;; public address in iCal format:https://calendar.google.com/calendar/ical/healtermon%40gmail.com/public/basic.ics
+
+(use-package ement
+  :straight (:type git
+									 :host github
+									 :repo "alphapapa/ement.el")
+	:defer)
+(use-package ox-twbs
+	:after org-roam
+	)
+
+;; commented out till emacs 29 comes along
+;; (use-package eat
+;; 	:straight (:type git
+;; 									 :host codeberg
+;; 									 :repo "akib/emacs-eat"))
+
+(use-package julia-mode
+  :mode "\\.jl\\'")
+
+(use-package langtool
+	;; from https://sqrtminusone.xyz/configs/emacs/#languagetool
+	;; LanguageTool is a great offline spell checker. For some reason, the download link is nowhere to be found on the home page, so it is listed below
+ 	;; https://dev.languagetool.org/http-server
+	:defer
+	:init
+	(setq langtool-language-tool-server-jar  "/Users/s/stuff/compro/LanguageTool/LanguageTool-5.9/languagetool-server.jar")
+	(setq langtool-default-language "en-US")
+	(setq langtool-mother-tongue "zh-CN"))
+
+(use-package mastodon
+	:defer ;; not practical LMAO I'd rather use Mastonaut
+	:init
+	;; change these whenever you wanna connect to another server
+	(setq mastodon-instance-url "https://emacs.ch"
+        mastodon-active-user "healtermon"))
+
+
+
+
 
