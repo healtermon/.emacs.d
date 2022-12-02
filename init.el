@@ -601,7 +601,9 @@ buffer is not visiting a file."
 	;; (setq org-hide-emphasis-markers t)
   (setq org-log-done t)
   (setq org-startup-indented t)
-  (setq org-agenda-files (list "~/stuff/notes/zk/life.org"))
+  (setq org-startup-indented t) ; with prot's themes, org-indent-mode adds additional line spacing that makes me unhappy as less information can be displayed on-screen. I believe his themes bring more convenience than org-indent-mode.
+  (setq org-agenda-files (list "~/stuff/notes/zk/life.org"
+															 "~/stuff/notes/calendars/healtermon-gmail.org"))
   (setq org-todo-keywords
 				'((sequence "TODO(t)"
 										"ASAP(a)"
@@ -1521,3 +1523,26 @@ Notes:
 
 (use-package doom-themes)
 (use-package ef-themes)
+
+
+(setq calendar-date-style 'iso) ;; YYYY/mm/dd
+(setq calendar-week-start-day 1)
+(setq calendar-time-display-form '(24-hours ":" minutes))
+
+(setq calendar-latitude 1.290270)
+(setq calendar-longitude 103.851959)
+
+(use-package org-gcal
+	:defer
+	:init
+	(setq org-gcal-client-id "550288085404-br7cr31089v7ss1e45ocnonmv4d2ki2v.apps.googleusercontent.com"
+				org-gcal-client-secret "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"
+				org-gcal-file-alist '(("healtermon@gmail.com" .  "~/stuff/notes/calendars/healtermon-gmail.org")
+															;; ("another-mail@gmail.com" .  "~/task.org")
+															)))
+;; client id:550288085404-br7cr31089v7ss1e45ocnonmv4d2ki2v.apps.googleusercontent.com
+;; client secret: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
+;; calendar id:healtermon@gmail.com
+;; public URL to calendar:https://calendar.google.com/calendar/embed?src=healtermon%40gmail.com&ctz=Asia%2FSingapore
+;; public address in iCal format:https://calendar.google.com/calendar/ical/healtermon%40gmail.com/public/basic.ics
+
