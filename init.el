@@ -720,6 +720,14 @@ Notes:
 								("C-c n r" . org-roam-alias-remove)
 								)))
   :config
+	(cl-defmethod org-roam-node-type ((node org-roam-node))
+    "Return the TYPE of NODE."
+    (condition-case nil
+        (directory-file-name
+         (file-name-directory
+          (file-relative-name (org-roam-node-file node) org-roam-directory)))
+      (error "")))
+	
 	(use-package dash)
 	(use-package f) 
 	(use-package s)
