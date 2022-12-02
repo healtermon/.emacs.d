@@ -149,7 +149,8 @@ buffer is not visiting a file."
 
 (set-language-environment 'utf-8) ; fixes the "haskell process has died" error somehow
 
-(setq enable-recursive-minibuffers t)
+(setq enable-recursive-minibuffers t) ; enables more than 1 minibuffer to be available at once
+(minibuffer-depth-indicate-mode 1) ; shows [minibuffer-depth] at left of the echo area when depth >1
 
 (setq force-load-messages t)
 
