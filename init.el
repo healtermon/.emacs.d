@@ -4,6 +4,7 @@
 ;; nix's cmake =/= homebrew's cmake, so (setenv "PATH" (concat "/opt/homebrew/bin/:" (getenv "PATH"))) from https://www.emacswiki.org/emacs/ExecPath
 
 ;; use-package-expand-minimally
+
 ;; keybindings to remember --------------------------------------------
 ;; save-buffer = SPC ;
 ;; xah-close-current-buffer(C-w) = SPC u
@@ -18,6 +19,7 @@
 ;; C-2 = pop-global-mark, basically jump to last previously marked/visited with the cursor
 ;; SPC l l  narrow-to-region & SPC l j to widen, basically edit only in region
 ;; SPC RET = execute-extended-command
+;; s = (qwerty)xah-fly-keys RET at point without moving cursor
 
 ;; Computers this file supports ------------------------------------------------------------
 ;; system-type 'darwin, system-name Apexless/Apexless.local/??? = macbook pro 14 m1 pro
@@ -38,23 +40,25 @@
 ;; - sgml-mode, for working with html files
 ;; - emms
 ;; - proof-general, for working with proof assistants, targetd at intermediate to experts
-;; - elpher, a gopher and gemini client
 ;; - compile.el
 ;; - lingva, interface with google translate
 ;; - mw-thesaurus, merrian webster thesaurus usage, donwloaded in org format
 ;; - spell-fu, spell checking without external dependencies (???)
 ;; - org-ql, query language for org files. I don't know why you would want this when there's ripgrep, maybe a nicer ripgrep for org files?
+;; - youdao-dictionary, an interface for the chinese-english/english-chinese online dictionary
+;; - migemo, allowing you to isearch the romanisation of japanese instead of typing the japanese character itself
+;; - DDSKK (DareDevil Simple Kana to Kanji conversion), if you wanna type japanese?
 ;; - 
 
 ;; Cool packages that i want to install later on----------------------------
 ;; - persp-mode, workspace manager
 ;; - highlight-symbol-mode, highlights all occurances of the symbol under point
 ;; - dumb-jump, for when u don't have lsp and want to jump to definitions
-;; - highlight-symbols-mode, highlighting all occurances of a symbol
 ;; - visual-regexps & visual-regexps-steroids, the first for live highlighting of regexps, replacing replace-regexp w/ visual-regexp Before installing test whether I need it or not!
 
 ;; Make startup faster by reducing the frequency of garbage
 ;; collection.  The default is 0.8MB.  Measured in bytes.
+;; commented out 'cuz I already set this to max in early-init.el so that garbage collection never happens till the end of this init file
 ;; (setq gc-cons-threshold (* 128 1024 1024)) ; increase garbage collection limit to 100MiB, default is 0.8MB, measured in bytes
 
 
@@ -139,7 +143,7 @@ buffer is not visiting a file."
 ;; Remember and restore the last cursor location of opened files
 (save-place-mode 1)
 
-																				;recent files browsing feature
+;; recent files browsing feature
 (setq recentf-max-saved-items 10000
       recentf-max-menu-items 10000)
 (recentf-mode 1)
@@ -267,7 +271,13 @@ buffer is not visiting a file."
   (autoload 'View-scroll-half-page-up "view")
   (autoload 'View-scroll-half-page-down "view")
   (global-set-key (kbd "C-v") 'View-scroll-half-page-forward)
-  (global-set-key (kbd "M-v") 'View-scroll-half-page-backward))
+  (global-set-key (kbd "M-v") 'View-scroll-half-page-backward)
+	(defun +command-name-n ()
+		(interactive)
+		(cond ((string-equal major-mode "dirvish-mode") (dirvish-narrow))
+					(t (isearch-forward))))
+	(define-key xah-fly-command-map (kbd "n") '+command-name-n)
+	)
 (use-package xah-find)
 
 (use-package which-key :config (which-key-mode))
