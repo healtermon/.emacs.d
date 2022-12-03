@@ -1808,5 +1808,77 @@ This function is added to the `standard-themes-post-load-hook'."
 
 ;; TESTING GROUNDS -------------------------------------------------------------
 
+(use-package burly
+	:defer)
+(use-package crux
+	:defer)
+
+(use-package tabspaces
+  :straight (:type git :host github :repo "mclear-tools/tabspaces")
+  :hook (after-init . +tabspace-setup)
+  :commands (tabspaces-switch-or-create-workspace
+             tabspaces-open-or-create-project-and-workspace)
+  :custom
+  (tabspaces-default-tab "what")
+  (tabspaces-remove-to-default t)
+  (tabspaces-include-buffers '("*scratch*" "*messages*"))
+  ;; sessions
+  (tabspaces-session t)
+  (tabspaces-session-auto-restore t)
+	:init
+;;;###autoload
+	(defun +tabspace-setup ()
+		"Set up tabspace at startup."
+		;; Add *Messages* and *splash* to Tab `Home'
+		(tabspaces-mode 1)
+		(progn
+			(tab-bar-rename-tab "Home")
+			(when (get-buffer "*Messages*")
+				(set-frame-parameter nil
+														 'buffer-list
+														 (cons (get-buffer "*Messages*")
+																	 (frame-parameter nil 'buffer-list))))
+			(when (get-buffer "*splash*")
+				(set-frame-parameter nil
+														 'buffer-list
+														 (cons (get-buffer "*splash*")
+																	 (frame-parameter nil 'buffer-list))))))
+
 	:config
+	;; Filter Buffers for Consult-Buffer
+	(with-eval-after-load 'consult
+		;; hide full buffer list (still available with "b" prefix)
+		(consult-customize consult--source-buffer :hidden t :default nil)
+		;; set consult-workspace buffer list
+		(defvar consult--source-workspace
+			(list :name     "Workspace Buffers"
+						:narrow   ?w
+						:history  'buffer-name-history
+						:category 'buffer
+						:state    #'consult--buffer-state
+						:default  t
+						:items    (lambda () (consult--buffer-query
+																	:predicate #'tabspaces--local-buffer-p
+																	:sort 'visibility
+																	:as #'buffer-name)))
+
+			"Set workspace buffer list for consult-buffer.")
+		(add-to-list 'consult-buffer-sources 'consult--source-workspace))
+
+	;; ya know this can turn tabspace integration off but not back on lmao
+	(defun +consult-tabspaces ()
+		"Deactivate isolated buffers when not using tabspaces."
+		(require 'consult)
+		(cond (tabspaces-mode
+					 ;; hide full buffer list (still available with "b")
+					 (consult-customize consult--source-buffer :hidden t :default nil)
+					 (add-to-list 'consult-buffer-sources 'consult--source-workspace))
+					(t
+					 ;; reset consult-buffer to show all buffers 
+					 (consult-customize consult--source-buffer :hidden nil :default t)
+					 (setq consult-buffer-sources (remove #'consult--source-workspace consult-buffer-sources)))))
+
+	(add-hook 'tabspaces-mode-hook #'+consult-tabspaces)
+
 	)
+
