@@ -26,3 +26,7 @@
  ;; custom-file (concat user-emacs-directory "custom.el") ; Place all "custom" code in a temporary file
  use-short-answers t ; y/n for yes/no
  )
+
+;; Local Variables:
+;; no-byte-compile: t
+;; End:
