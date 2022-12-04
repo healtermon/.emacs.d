@@ -1882,3 +1882,11 @@ This function is added to the `standard-themes-post-load-hook'."
 
 	)
 
+(use-package telega
+	:defer
+	:init
+	;; (setq telega-server-libs-prefix "/var/empty/local/")	
+	(setq telega-server-libs-prefix "/opt/homebrew/Cellar/tdlib/HEAD-d581e04/")
+	;; :config
+	
+	)
