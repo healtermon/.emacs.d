@@ -21,8 +21,38 @@
 ;; SPC RET = execute-extended-command
 ;; s = (qwerty)xah-fly-keys RET at point without moving cursor
 
+;; Packages to maybe have a look at
+;; - gamegrid
+;; - narrow-indirect
+;; - mixed-pitch
+;; - ace-link
+;; - ledger-mode & flycheck-ledger
+;; - consult-flycheck & flycheck
+;; - dwim-shell-command
+;; - undo-fu & undo-fu-session
+;; - org-bookmark-heading
+;; - org-visibility
+;; - cmake-mode
+;; - ws-butler
+;; - topsy
+;; - with-editor
+;; - scratch
+;; - so-long
+;; - easy-kill
+;; - ox-jira
+;; - gcmh
+;; - symbol-overlay
+;; - git-auto-commit-mode
+;; - transient
+;; - just-mode
+;; - json-snatcher
+;; - iedit
+;; - archive-rpm
+
 ;; Cool Packages to maybe have a look at ---------------------------------------
 ;; - org-noter, annotating pdf,epub with complete org files in the margin
+;; - org-transclusion, live preview of parts of another org file via links
+;; - bind-key
 ;; - apheleia, asynchronous code formatting
 ;; - org-contrib, additional org packages
 ;; - undo fu, undo between sessions
@@ -61,6 +91,14 @@
 	(defun +system-name? (name-string)
 		(string-equal system-name name-string))
 
+	;; This file supports a few computers
+	(defvar +apexless (and (eq system-type 'darwin)) "Whether Emacs is running on my macbook pro 14-inch m1 pro") ;; system-name Apexless/Apexless.local/???
+	(defvar +termux (and (+system-name? "localhost")) "Whether Emacs is running on termux (probably on my phone)")
+	(defvar +mango (and (+system-name? "mango")) "Whether Emacs is running on my linux desktop running NixOS")
+	(defvar +asses (and (+system-name? "ASSES-UX310UQK")) "Whether Emacs is running on ASSES-UX310UQK (my poly laptop)")
+	(defvar +durian (and (+system-name? "DURIAN")) "Whether Emacs is running on kor's poly laptop running Manjaro")
+	(defvar +nix-on-droid (+system-name? "nix-on-droid-placeholder-name") "Whether emacs is running on nix-on-droid")
+
 	(defun +delete-file-visited-by-buffer (buffername)
 		"Delete the file visited by the buffer named BUFFERNAME."
 		(interactive "b")
@@ -88,13 +126,28 @@ buffer is not visiting a file."
 		(let ((comint-buffer-maximum-size 0))
 			(comint-truncate-buffer)))
 
-	;; This file supports a few computers
-	(defvar +apexless (and (eq system-type 'darwin)) "Whether Emacs is running on my macbook pro 14-inch m1 pro") ;; system-name Apexless/Apexless.local/???
-	(defvar +termux (and (+system-name? "localhost")) "Whether Emacs is running on termux (probably on my phone)")
-	(defvar +mango (and (+system-name? "mango")) "Whether Emacs is running on my linux desktop running NixOS")
-	(defvar +asses (and (+system-name? "ASSES-UX310UQK")) "Whether Emacs is running on ASSES-UX310UQK (my poly laptop)")
-	(defvar +durian (and (+system-name? "DURIAN")) "Whether Emacs is running on kor's poly laptop running Manjaro")
-	(defvar +nix-on-droid (+system-name? "nix-on-droid-placeholder-name") "Whether emacs is running on nix-on-droid")
+
+	;; from https://www.emacswiki.org/emacs/HalfScrolling#h5o-4
+	(defun +scroll-half-page (direction)
+		"Scrolls half page up if `direction' is non-nil, otherwise will scroll half page down."
+		(let ((opos (cdr (nth 6 (posn-at-point)))))
+			;; opos = original position line relative to window
+			(move-to-window-line nil)  ;; Move cursor to middle line
+			(if direction
+					(recenter-top-bottom -1)  ;; Current line becomes last
+				(recenter-top-bottom 0))  ;; Current line becomes first
+			(move-to-window-line opos)))  ;; Restore cursor/point position
+	;;;###autoload
+	(defun +scroll-half-page-down ()
+		"Scrolls exactly half page down keeping cursor/point position."
+		(interactive)
+		(+scroll-half-page nil))
+	;;;###autoload
+	(defun +scroll-half-page-up ()
+		"Scrolls exactly half page up keeping cursor/point position."
+		(interactive)
+		(+scroll-half-page t))
+
 	) 
 
 (progn ; Default configs -------------------------------------------------------
@@ -255,8 +308,6 @@ buffer is not visiting a file."
 
 	)
 
-
-
 (progn ; essential packages for everyone ---------------------------------------
 	
 	(use-package xah-fly-keys
@@ -267,10 +318,8 @@ buffer is not visiting a file."
 															((or +asses +mango) 'colemak-mod-dh)
 															(t 'qwerty)))
 		(xah-fly-keys 1)
-		(autoload 'View-scroll-half-page-up "view")
-		(autoload 'View-scroll-half-page-down "view")
-		(global-set-key (kbd "C-v") 'View-scroll-half-page-forward)
-		(global-set-key (kbd "M-v") 'View-scroll-half-page-backward)
+		(global-set-key (kbd "C-v") '+scroll-half-page-down)
+		(global-set-key (kbd "M-v") '+scroll-half-page-up)
 		(defun +dirvish-xfk-command-mode-n ()
 			(interactive)
 			(cond ((string-equal major-mode "dirvish-mode") (dirvish-narrow))
@@ -289,9 +338,8 @@ buffer is not visiting a file."
 		(setq history-length 10000)
 		(setq history-delete-duplicates t)
 		(setq savehist-save-minibuffer-history t))
-
-	;; vertico is the vertical autocomplete selection menu
-	(use-package vertico
+	
+	(use-package vertico ;; a vertical autocomplete selection menu
 		:straight (vertico :files (:defaults "extensions/*")
 											 :includes (vertico-indexed vertico-flat vertico-grid vertico-mouse vertico-quick vertico-buffer vertico-repeat vertico-reverse vertico-directory vertico-multiform vertico-unobtrusive ))
 		:bind (:map vertico-map ("M-DEL" . vertico-directory-delete-word))
@@ -302,9 +350,7 @@ buffer is not visiting a file."
 		(setq vertico-cycle t)
 		)
 
-
-	;; orderless is the completion style
-	(use-package orderless
+	(use-package orderless ;; a completion style
 		:config
 		(setq completion-styles '(orderless basic)
 					completion-category-defaults nil
@@ -320,17 +366,14 @@ buffer is not visiting a file."
 		(advice-add #'orderless-regexp :filter-args #'fix-dollar)
 		)
 
-	;; marginalia annotates the minibuffer like the margins in a book (look on the right side)
-	(use-package marginalia
+	(use-package marginalia ;; annotates the minibuffer like the margins in a book (look on the right side)
 		:bind (:map minibuffer-local-map
 								("M-A" . marginalia-cycle))
 		:init
 		(setq marginalia-max-relative-age 0)
 		(marginalia-mode 1))
 
-
-	;; provides _good shit_ versions of common commands and more
-	(use-package consult
+	(use-package consult ;; provides _good shit_ versions of common commands and more
 		:bind (("C-x M-:" . consult-complex-command)
 					 ("C-c h" . consult-history)
 					 ("C-c m" . consult-mode-command)
@@ -368,8 +411,6 @@ buffer is not visiting a file."
 					 ("C-x C-d" . consult-dir)
 					 ("C-x C-j" . consult-dir-jump-file)))
 
-
-
 	(use-package embark
 		:init
 		;; Optionally replace the key help with a completing-read interface
@@ -392,7 +433,6 @@ buffer is not visiting a file."
 								 '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
 									 nil
 									 (window-parameters (mode-line-format . none)))))
-
 	(use-package embark-consult
 		:after (embark consult)
 		:demand t ; only necessary if you have the hook below
@@ -402,7 +442,6 @@ buffer is not visiting a file."
 
 	(use-package wgrep
 		:defer)
-
 
 	(use-package helpful
 		:bind (([remap describe-command] . helpful-command)
@@ -519,7 +558,8 @@ buffer is not visiting a file."
 
 	)
 
-
+(use-package crux
+	:defer)
 (use-package reveal-in-folder ;; Open Finder at location
 	:if +apexless 												; only works on macOS
 	:defer)
@@ -529,8 +569,7 @@ buffer is not visiting a file."
 	(setq terminal-here-mac-terminal-command 'iterm2)
 	)
 
-(use-package rainbow-mode ;; colors hex colors
-	:hook (prog-mode . rainbow-mode))
+
 
 (progn ; file manager ----------------------------------------------------
 	;; dired-related settings
@@ -736,7 +775,8 @@ buffer is not visiting a file."
 						 (not (string-match-p (regexp-quote ".stversions") (buffer-file-name)))
 						 (not (member "NO_ORG_ROAM" (org-get-tags))))))
 		(setq org-agenda-hide-tags-regexp "NO_ORG_ROAM")
-		
+
+		;; if you ever wanna rename your file titles, look at https://org-roam.discourse.group/t/does-renaming-title-no-longer-renames-the-filename/2018
 		:custom
 		;; (org-roam-completion-everywhere t)
 		(org-roam-node-display-template
@@ -1099,6 +1139,9 @@ Notes:
 		(add-hook 'python-mode-hook
 							(lambda () (setq-local devdocs-current-docs '("python~3.10"))))
 		:bind ("C-h D" . devdocs-lookup))
+
+	(use-package rainbow-mode ;; colors hex colors
+		:hook (prog-mode . rainbow-mode))
 	)
 (progn ;; Language Server Protocol(LSP)-related ---
 	;; these are for eglot
@@ -1106,7 +1149,7 @@ Notes:
 	(use-package project)
 	(use-package eldoc)
 	(use-package eglot
-		:hook ((python-mode c-mode-hook c++-mode-hook rust-mode nix-mode
+		:hook ((python-mode c-mode c++-mode rust-mode nix-mode clojure-mode
 												;; LaTeX-mode
 												) . eglot-ensure)
 		:config
@@ -1479,7 +1522,6 @@ This function is added to the `standard-themes-post-load-hook'."
 					org-appear-autoentities t
 					org-appear-autolinks nil
 					org-appear-autosubmarkers t))
-
 	
 
 	)
@@ -1644,21 +1686,13 @@ This function is added to the `standard-themes-post-load-hook'."
 	)
 
 (progn ; Doesn't work yet / To-test --------------------------------------------
-	(use-package telega
-		:defer
-		:init
-		(setq telega-server-libs-prefix "/var/empty/local/")	
-		;; (setq telega-server-libs-prefix "/opt/homebrew/Cellar/tdlib/HEAD-faa738d/")
-		;; :config
-		
-		)
 
 	(use-package emms
 		:defer
 		:config
 		(emms-minimalistic))
 	
-	(use-package ox-twbs
+	(use-package ox-twbs ;; ox-html with more modern styling
 		:after org-roam
 		)
 
@@ -1766,6 +1800,8 @@ This function is added to the `standard-themes-post-load-hook'."
  ;; If there is more than one, they won't work right.
  '(custom-safe-themes
 	 '("c3af4ee7a19412fb5a032ac287041171784abf23eb5e3107948388bc04ebc70b" "22c213e81a533c259127302ef1e0f2d1f332df83969a1f9cf6d5696cbe789543" "931ee45708e894d5233fc4a94ae0065c765c1a0aeb1bd8d9feee22f5622f44b4" "02f57ef0a20b7f61adce51445b68b2a7e832648ce2e7efb19d217b6454c1b644" "e9d47d6d41e42a8313c81995a60b2af6588e9f01a1cf19ca42669a7ffd5c2fde" default))
+ '(ignored-local-variable-values
+	 '((cider-print-fn . "sicmutils.expression/expression->stream")))
  '(org-agenda-custom-commands
 	 '(("c" "To-dos of Noted Life"
 			((tags-todo "+health"
@@ -1804,15 +1840,16 @@ This function is added to the `standard-themes-post-load-hook'."
 					 '(default ((t (:family "mononoki" :foundry "UKWN"   :height 151 :width normal))))))
  (+mango (custom-set-faces
 					'(default ((t (:family "mononoki" :foundry "UKWN"   :height 113 :width normal))))))
+ (+apexless (custom-set-faces ;;it's just here so Emacs doesn't randomly strew custom-set-faces over this file
+						 '(default ((t ( :height 140 :foundry "nil" :family "mononoki Nerd Font"))))))
  )
 
 ;; TESTING GROUNDS -------------------------------------------------------------
 
 (use-package burly
 	:defer)
-(use-package crux
-	:defer)
 
+(setq tab-bar-show t)
 (use-package tabspaces
   :straight (:type git :host github :repo "mclear-tools/tabspaces")
   :hook (after-init . +tabspace-setup)
@@ -1881,6 +1918,38 @@ This function is added to the `standard-themes-post-load-hook'."
 	(add-hook 'tabspaces-mode-hook #'+consult-tabspaces)
 
 	)
+
+(use-package hl-todo ;; highlight "TODO"s, jump between them and also a todo-occur
+	;; copied from https://git.sjtu.edu.cn/sjtug/doom-emacs/-/blob/master/modules/ui/hl-todo/config.el
+	:hook (prog-mode . hl-todo-mode)
+  :config
+	(setq hl-todo-highlight-punctuation ":"
+				hl-todo-keyword-faces
+				'(;; For reminders to change or add something at a later date.
+					("TODO" warning bold)
+					;; For code (or code paths) that are broken, unimplemented, or slow,
+					;; and may become bigger problems later.
+					("FIXME" error bold)
+					;; For code that needs to be revisited later, either to upstream it,
+					;; improve it, or address non-critical issues.
+					("REVIEW" font-lock-keyword-face bold)
+					;; For code smells where questionable practices are used
+					;; intentionally, and/or is likely to break in a future update.
+					("HACK" font-lock-constant-face bold)
+					;; For sections of code that just gotta go, and will be gone soon.
+					;; Specifically, this means the code is deprecated, not necessarily
+					;; the feature it enables.
+					("DEPRECATED" font-lock-doc-face bold)
+					;; Extra keywords commonly found in the wild, whose meaning may vary
+					;; from project to project.
+					("NOTE" success bold)
+					("BUG" error bold)
+					("XXX" font-lock-constant-face bold))))
+
+
+(use-package cider
+	:defer)
+;; flymake-kondor/flycheck-clj-kondo
 
 (use-package telega
 	:defer
