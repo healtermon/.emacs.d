@@ -250,6 +250,12 @@ buffer is not visiting a file."
 																(time-subtract after-init-time before-init-time)))
 											 gcs-done)))
 
+	;; in isearch, highlight the line u are currently on 'cuz I tend to spend quite some time searching for it; it jumps all over the screen
+	;; this will disable hl-line-mode if already on, so beware.
+	(defun +turn-off-hl-line-mode () (hl-line-mode -1))
+	(add-hook 'isearch-mode-hook #'hl-line-mode)
+	(add-hook 'isearch-mode-end-hook '+turn-off-hl-line-mode)
+
 	)
 
 ;; All non-in-built package-related stuff goes under here-----------------------
