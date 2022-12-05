@@ -1526,6 +1526,13 @@ This function is added to the `standard-themes-post-load-hook'."
 
 	)
 
+(progn ; For Fun / Useless -----------------------------------------------------
+	(use-package elcord ;; enables the "in emacs editing xxx" discord status, use "(elcord-mode)"
+		:defer
+		)
+	
+	)
+
 ;; Set gc threshold back to normal
 ;; if pauses are too long, decrease the threshold
 ;; if pauses are too frequent, increase the threshold
