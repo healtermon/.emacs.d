@@ -239,6 +239,7 @@ buffer is not visiting a file."
 	(setq auto-window-vscroll nil)
 	(put 'narrow-to-region 'disabled nil)
 
+	(setq user-mail-address "healtermon@gmail.com")
 
 	;; Use a hook so the message doesn't get clobbered by other messages.
 	(add-hook 'emacs-startup-hook
@@ -1219,6 +1220,16 @@ Notes:
   (use-package guix ; interface for the guix package manager
 		))
 
+(progn ; Password-Manager ------------------------------------------------------
+	(use-package bitwarden
+		:straight (:type git
+										 :host github
+										 :repo "seanfarley/emacs-bitwarden")
+		:init
+		(setq bitwarden-user user-mail-address)
+		;; (bitwarden-auth-source-enable) ;; don't need it (yet)
+		)
+	)
 
 (progn ; Communication Protocols -----------------------------------------------
 	(use-package elpher ; a gopher and gemini client, super simple to use
@@ -1238,19 +1249,52 @@ Notes:
 										 :repo "alphapapa/ement.el")
 		:defer)
 
-	(use-package circe ; currently i prefer ERC more! but circe is more easily extensible and takes the lessons learnt from ERC
+	(use-package circe ; IRC Client; takes the lessons learnt from ERC and is more easily extensible, and has nicer documentation IMO. Also since it's simpler it's easier to undertand, though also very noob-unfriendly from experience (see below)
+		;; Q: honestly I still don't know how to login without using circe-network-options, unlike in ERC where they prompt you, circe doesn't seem to let you msg ppl?
+		;; A: well it's actually 'cuz "/msg NickServ IDENTIFY user pass" opens in another buffer, which if you didn't notice and typed the wrong password, makes it seem like nothing happened... So it is a beautiful client after all, separating all the chats :)
 		:defer
 		:config
 		(setq circe-network-options
-					'(("Libera Chat"
+					`(("Libera Chat"
 						 :tls t
 						 :nick "healtermon"
 						 :sasl-username "healtermon"
-						 :sasl-password "N0ircnolife"
-						 :channels ("#emacs-circe" "#emacs"  "#emacs-nixos" "#nixos" "#nix-darwin"
-												"#guix" "#systemcrafters" "#hammerspoon" "#asahi"
-												"#clschool" "#scheme")
-						 ))))
+						 :sasl-password ,(bitwarden-getpass "libera.chat") ;; gotta login via bw-cli and  "(bitwarden-unlock)" before "(circe)" to get this to work
+						 :channels ( "#emacs-circe" "#emacs"  "#emacs-nixos" "#nixos" "#nix-darwin"
+												 "#guix" "#systemcrafters" "#hammerspoon" "#asahi"
+												 "#clschool" "#scheme")
+						 )))
+		(setq circe-reduce-lurker-spam t)
+		(setq circe-format-server-topic "*** Topic change by {userhost}: {topic-diff}") ;; topic change diff
+		;; enable logging of chats
+		(load "lui-logging" nil t)
+		(setq lui-logging-directory "~/.emacs.d/.luilogs")
+		(enable-lui-logging-globally)
+		;; enable coloring of nicknames
+		(require 'circe-color-nicks)
+		(enable-circe-color-nicks)
+
+		(setq lui-time-stamp-format "%H:%M"
+					lui-time-stamp-position 'right-margin
+					lui-fill-column 89 ; unused as fill-type is nil, means no filling, or restricting the output to within a certain number of columns
+					lui-fill-type nil
+					)
+
+		(add-hook 'lui-mode-hook 'my-lui-setup)
+		(defun my-lui-setup ()
+			(setq fringes-outside-margins t
+						right-margin-width 5
+						word-wrap t
+						wrap-prefix "    "
+						truncate-lines nil ;; disable truncate-lines so you can comfortably read
+						)
+			(setf (cdr (assoc 'continuation fringe-indicator-alist)) nil)
+			)
+
+		(setq lui-track-bar-behavior 'before-switch-to-buffer)
+		(enable-lui-track-bar)
+
+		)
 	
 	(use-package erc
 		:straight (:type built-in)
