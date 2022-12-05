@@ -1072,6 +1072,10 @@ Notes:
 		:defer t ; package already has basic commands autoloaded
 		:custom (vterm-install t)
 		)
+	(use-package multi-vterm ;; default vterm allows only 1 buffer, this is to allow more
+		:defer t
+		:after vterm
+		)
 
 	(use-package eshell
 		:defer
@@ -1150,7 +1154,7 @@ Notes:
 	(use-package rainbow-mode ;; colors hex colors
 		:hook (prog-mode . rainbow-mode))
 	)
-(progn ;; Language Server Protocol(LSP)-related ---
+(progn ; Language Server Protocol(LSP)-related ----
 	;; these are for eglot
 	(use-package xref)
 	(use-package project)
@@ -1241,7 +1245,7 @@ Notes:
 	(use-package elpher ; a gopher and gemini client, super simple to use
 		:defer)
 	
-	(use-package mastodon
+	(use-package mastodon ; mastodon client
 		;; not practical LMAO I'd rather use Mastonaut
 		:defer 
 		:init
@@ -1249,7 +1253,7 @@ Notes:
 		(setq mastodon-instance-url "https://emacs.ch"
 					mastodon-active-user "healtermon"))
 
-	(use-package ement
+	(use-package ement ; matrix client and hence also IRC
 		:straight (:type git
 										 :host github
 										 :repo "alphapapa/ement.el")
@@ -1322,6 +1326,18 @@ Notes:
 		:config
 		(setq erc-image-inline-rescale 300)
 		(add-to-list 'erc-modules 'image))
+
+	
+	
+	(use-package telega ; GOATed Telegram Client
+		:defer
+		:init
+		;; (setq telega-server-libs-prefix "/var/empty/local/")	
+		(setq telega-server-libs-prefix "/opt/homebrew/Cellar/tdlib/HEAD-d581e04/")
+		;; :config
+		)
+
+
 	)
 
 (use-package google-this
@@ -1337,7 +1353,7 @@ Notes:
 	(setq langtool-default-language "en-US")
 	(setq langtool-mother-tongue "zh-CN"))
 
-(progn ; prettifying everything ------------------------------------------------
+(progn ; Prettifying Everything ------------------------------------------------
 	(use-package all-the-icons ; for dashboard & dirvish & citar
 		:defer t
 		:config (setq all-the-icons-scale-factor 1.0)
@@ -2008,11 +2024,5 @@ This function is added to the `standard-themes-post-load-hook'."
 	:defer)
 ;; flymake-kondor/flycheck-clj-kondo
 
-(use-package telega
-	:defer
-	:init
-	;; (setq telega-server-libs-prefix "/var/empty/local/")	
-	(setq telega-server-libs-prefix "/opt/homebrew/Cellar/tdlib/HEAD-d581e04/")
-	;; :config
-	
-	)
+
+
