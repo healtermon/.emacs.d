@@ -19,7 +19,7 @@
  command-line-x-option-alist nil ; Remove irreleant command line options for faster startup
  ;; select-active-regions 'only ; Emacs hangs when large selections contain mixed line endings. ; Sam: What is this?
  ;; auto-save-list-file-prefix nil ; Disable auto-save
- ;; create-lockfiles nil ; Disable lockfiles
+ create-lockfiles nil ; Disable lockfiles
  ;; make-backup-files nil ; Disable backup files
  vc-follow-symlinks t ; Do not ask about symlink following
  ;; user-emacs-directory (expand-file-name "~/.cache/emacs/") ; No littering
