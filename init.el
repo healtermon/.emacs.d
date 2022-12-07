@@ -148,6 +148,10 @@ buffer is not visiting a file."
 		(interactive)
 		(+scroll-half-page t))
 
+	(defun irc () ;; overwrites rcirc command, but I don't use rcirc anyways
+		"Connect to IRC"
+		(interactive)
+		(circe "Libera Chat"))
 	) 
 
 (progn ; Default configs -------------------------------------------------------
