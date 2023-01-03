@@ -19,13 +19,22 @@
  command-line-x-option-alist nil ; Remove irreleant command line options for faster startup
  ;; select-active-regions 'only ; Emacs hangs when large selections contain mixed line endings. ; Sam: What is this?
  ;; auto-save-list-file-prefix nil ; Disable auto-save
- create-lockfiles nil ; Disable lockfiles
+ ;; create-lockfiles nil ; Disable lockfiles
  ;; make-backup-files nil ; Disable backup files
  vc-follow-symlinks t ; Do not ask about symlink following
  ;; user-emacs-directory (expand-file-name "~/.cache/emacs/") ; No littering
  ;; custom-file (concat user-emacs-directory "custom.el") ; Place all "custom" code in a temporary file
  use-short-answers t ; y/n for yes/no
  )
+
+(add-hook 'emacs-startup-hook
+          (lambda ()
+            ;; Set gc threshold back to normal
+            ;; if pauses are too long, decrease the threshold
+            ;; if pauses are too frequent, increase the threshold
+            (setq gc-cons-threshold (* 128 1024 1024)) ; increase garbage collection limit to 100MiB, default is 0.8MB, measured in bytes
+            (setq gc-cons-percentage 0.6);; Portion of heap used for allocation.  Defaults to 0.1.
+            ))
 
 ;; Local Variables:
 ;; no-byte-compile: t
