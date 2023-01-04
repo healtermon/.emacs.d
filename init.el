@@ -69,14 +69,11 @@
 ;; - zotra, zotero translators without using zotera client
 ;; - sotlisp, speed elisp function typing and editing style
 ;; - blackout, an easier delight/diminish/dim, for changing both major and minor mode appearance in modeline
+;; - GCMH, the Garbage Collector Magic Hack, changes GC threshold based on user activity
 
 ;;;; Cool packages that I want to install later on
 ;; - persp-mode, workspace manager
 ;; - dumb-jump, for when u don't have lsp and want to jump to definitions
-;; - visual-regexps & visual-regexps-steroids, the first for ,  Before installing test whether I need it or not!
-;; - lispy, smart, short keybind lisp editing
-;; - puni, leverages built-in features for structural editing, warning: not all-encompassing
-
 
 ;;; Intro to Config
 ;; This config is sorted in least to most likely to break... as I test stuff with my init.el and restart often.
@@ -95,8 +92,19 @@
 (defvar +nix-on-droid (+system-name? "nix-on-droid-placeholder-name") "Whether emacs is running on nix-on-droid")
 (defvar +healtermon-gcal-file "~/stuff/notes/calendars/gcal.org" "healtermon@gmail.com main calendar") ;; i'll elogate the names if variety of files expands
 (defvar +healtermon-gtasks-file "~/stuff/notes/tasks/gtasks.org" "healtermon@gmail.com \"My Tasks\" tasklist")
+
+
+
 (when +apexless (load "~/.emacs.d/lisp/random-secrets"))
 
+(setq init-file-debug nil)
+(if init-file-debug
+    (setq use-package-verbose t
+          use-package-expand-minimally nil
+          use-package-compute-statistics t
+          debug-on-error t)
+  (setq use-package-verbose nil
+        use-package-expand-minimally t))
 
 (defun +delete-file-visited-by-buffer (buffername)
   "Delete the file visited by the buffer named BUFFERNAME."
@@ -174,14 +182,10 @@ buffer is not visiting a file."
 ;; System locale to use for formatting time values.
 (setq system-time-locale "C") ; Make sure that the weekdays in the time stamps of your Org mode files and agenda appear in English.
 
-;;turn all "yes" and "no" prompts into "y" and "n" prompts
-(fset 'yes-or-no-p 'y-or-n-p)
 
 (setq use-dialog-box nil)
 
 (setq-default
- display-time-default-load-average nil ; Don't display load average
- display-time-format "%H:%M"           ; Format the time string to 24h time
  fill-column 80                        ; Set width for automatic line breaks
  uniquify-buffer-name-style 'forward   ; Uniquify buffer names
  window-combination-resize t           ; Resize windows proportionally
@@ -195,13 +199,12 @@ buffer is not visiting a file."
 (when (fboundp 'scroll-bar-mode) (scroll-bar-mode -1))
 (when (fboundp 'tool-bar-mode) (tool-bar-mode -1))
 (menu-bar-mode -1)
-(unless +apexless (display-time-mode 1)) ;apexless has time permanently displayed so you don't need this
+
 
 (setq large-file-warning-threshold (* 128 1024 1024)) ;; 128 MebiBytes
-(setq inhibit-compacting-font-caches t) ; speed up unicode loading, but uses more memory
 (setq force-load-messages t)
-(set-language-environment 'utf-8) ; fixes the "haskell process has died" error somehow
-
+(set-language-environment "UTF-8"); fixes the "haskell process has died" error somehow
+(setq selection-coding-system 'utf-8)
 (set-default-coding-systems 'utf-8)   ; Default to utf-8 encoding
 
 ;; from https://bytemeta.vip/index.php/repo/alexluigit/emacs-grandview
@@ -220,13 +223,13 @@ buffer is not visiting a file."
 (setq hscroll-margin 1)
 (setq scroll-preserve-screen-position 1)
 
-
 ;; enable some disabled commands
 (put 'set-goal-column 'disabled nil)
 (put 'narrow-to-region 'disabled nil)
 (put 'upcase-region 'disabled nil)
 (put 'downcase-region 'disabled nil)
 (put 'scroll-left 'disabled nil)      ; actually moves left the on-screen words, scroll-right brings u back to column 0.
+
 
 (setq backup-file-directory (file-truename "~/.emacs.d/backups/"))
 
@@ -236,37 +239,18 @@ buffer is not visiting a file."
 ;;Put all autosave files like #filename.whatever# in the same directory
 (setq auto-save-file-name-transforms `((".*" ,backup-file-directory t)))
 
-;; Remember and restore the last cursor location of opened files
-(save-place-mode 1)
-
 (blink-cursor-mode -1)
 
-(setq show-paren-delay 0.1)
+(setq show-paren-delay 0.125)
 (show-paren-mode 1)
 
 ;; set buffer to auto-update when the associated file is written to externally, and set it to update in 1s
+;; (customize-set-variable 'auto-revert-interval 1)
+(setq auto-revert-interval 10)
 (global-auto-revert-mode 1)
-(setq auto-revert-interval 1)
-
-;; recent files browsing feature
-(setq recentf-max-saved-items 10000
-      recentf-max-menu-items 10000)
-(recentf-mode 1)
 
 (setq enable-recursive-minibuffers t) ; enables more than 1 minibuffer to be available at once
 (minibuffer-depth-indicate-mode 1) ; shows [minibuffer-depth] at left of the echo area when depth >1
-
-
-(cond (+apexless ;; no (toggle-frame-maximized) as you can't move or resize the window without undoing it, and no fullscreen 'cuz stupid notch
-       (setq default-frame-alist
-             (append ;; these parameters perfectly fit my screen, like (toggle-frame-maximized), gotten by (frame-height)+1 and (frame-width)
-              '((top . 0)
-                (left . 0)
-                (width . 187)
-                (height . 63))
-              default-frame-alist)))
-      (+mango nil)
-      (t (toggle-frame-fullscreen)))
 
 ;; Use a hook so the message doesn't get clobbered by other messages.
 (add-hook 'emacs-startup-hook
@@ -282,66 +266,76 @@ buffer is not visiting a file."
 (defun +turn-off-hl-line-mode () (hl-line-mode -1))
 (add-hook 'isearch-mode-hook #'hl-line-mode)
 (add-hook 'isearch-mode-end-hook '+turn-off-hl-line-mode)
-;;; All non-in-built package-related stuff goes under here
-;;; Package Manager, Configuration Macros and Benchmarking
 
-;; speed up straight initialisation, and neatened up the bootstrap code.
-;; Previously it looks like this, kept so you can see when it suddenly breaks 'cuz it updates and the recommended bootstrap code changes.
-;; Straight.el bootstrap code
-;; (defvar bootstrap-version)
-;; (let ((bootstrap-file (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
-;;       (bootstrap-version 6))
-;;   (unless (file-exists-p bootstrap-file)
-;;     (with-current-buffer (url-retrieve-synchronously "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el" 'silent 'inhibit-cookies)
-;;       (goto-char (point-max)) (eval-print-last-sexp)))
-;;   (load bootstrap-file nil 'nomessage))
-;; (defvar bootstrap-version)
+(cond (+apexless ;; no (toggle-frame-maximized) as you can't move or resize the window without undoing it, and no fullscreen 'cuz stupid notch
+       (setq default-frame-alist
+             (append ;; these parameters perfectly fit my screen, like (toggle-frame-maximized), gotten by (frame-height)+1 and (frame-width)
+              '((top . 0)
+                (left . 0)
+                (width . 187)
+                (height . 63))
+              default-frame-alist)))
+      (+mango nil)
+      (t (toggle-frame-fullscreen)))
+
+
+;;; Package Manager
+;; Bootstrap `straight.el' package manager
+;; I copied alexlugit's neatened-up bootstrap code version 6 at https://github.com/alexluigit/emacs-grandview/blob/master/init.el
+(setq straight-use-package-by-default nil ; makes each use-package form also invoke straight.el to install the package, unless otherwise specified
+      straight-vc-git-default-clone-depth 1
+      straight-check-for-modifications '(check-on-save find-when-checking) ;; speeds up straight initialisation
+      straight-repository-branch "develop"
+      straight-hosts '((github "github.com" ".git")
+                       (gitlab "gitlab.com" ".git")
+                       (sourcehut "git.sr.ht" ".git") ; I still don't know how to get it to work
+                       (bitbucket "bitbucket.com" ".git")
+                       (codeberg "codeberg.org" ".git")))
 (let ((bootstrap (locate-user-emacs-file "straight/repos/straight.el/bootstrap.el"))
       (script "https://raw.githubusercontent.com/raxod502/straight.el/develop/install.el")
       (file-name-handler-alist nil))
-  ;; Init package manager `straight.el'
-  (setq straight-use-package-by-default t ; makes each use-package form also invoke straight.el to install the package, unless otherwise specified
-        straight-vc-git-default-clone-depth 1
-        straight-check-for-modifications '(check-on-save find-when-checking)
-        straight-repository-branch "develop"
-        straight-hosts '((github "github.com" ".git")
-                         (gitlab "gitlab.com" ".git")
-                         (sourcehut "git.sr.ht" ".git") ; I still don't know how to get it to work
-                         (bitbucket "bitbucket.com" ".git")
-                         (codeberg "codeberg.org" ".git")))
-
-  ;; modified straight bootstrap code
+  ;; modified straight bootstrap code, initialise straight
   (unless (file-exists-p bootstrap)
     (with-current-buffer (url-retrieve-synchronously script 'silent 'inhibit-cookies)
       (goto-char (point-max)) (eval-print-last-sexp)))
-  (load bootstrap nil 'nomessage))
+  (load bootstrap nil 'nomessage)
 
-(straight-use-package 'leaf) 
-(straight-use-package 'leaf-keywords)
+  ;; notes on straight:
+  ;; it's used like (straight-use-package '(name :keyword keywordval ...)) where name is the feature ; found by going into the code and seeing the name provided in the file by (provide 'name)
+  )
 
-(leaf *configuration-macros 
-  :config)
+;;; Configuration Macros
+(straight-use-package 'leaf)
 (leaf leaf
-  :doc "leaner, better-documented & easier-to-extend `use-package'. Philosophy is to be clear about everything, base package is minimalistic.")
+  :doc
+  "Leaner, Better-Documented & Easier-To-Extend `use-package'. Philosophy is to be clear about everything, base package is minimalistic."
+  "list of configs to refer to: https://github.com/conao3/leaf.el/issues/306"
+  "it seems it is not clearer..."
+  "using custom seems to load package at init time, not after deferring... thank god it's easy to change the block to setq"
+  "you either use :defer-config or :config. :defer-config when there's no other thing activating deferring, and :config otherwise"
+  "REMEMBER TO ADD :straight t. REMEMBER TO ADD :straight t. REMEMBER TO ADD :straight t. REMEMBER TO ADD :straight t"
+  "comparison to use-package (that are not on github)
++ the :if  doesn't come after loading the package with :straight or :ensure like in use-package, it comes BEFORE so you don't have to wrap the whole use-package macro in a when when you want to conditionally add packages to load-path
+- no keyword to customize variables after eval of package that are meant to be customized take less time to set if , but it'll do it at init time which takes a lot of time so nah...")
 (leaf leaf-keywords
   :doc "provides more keywords for base leaf package for easier configuration"
+  :preface
+  ;; only after installing this can we make this neater
+  (straight-use-package 'leaf-keywords)
   :config
   (leaf-keywords-init))
-(leaf use-package
-  :doc "macros to neaten configuration"
-  :straight t)
 
+(leaf once
+  :doc "more configuration macros, yay!"
+  :straight (once :type git :host github :repo "emacs-magus/once"))
+
+(leaf use-package
+  :doc "macros to neaten configuration. I keep it around to slowly convert my init file and try others' code blocks"
+  :straight t)
 (leaf bind-key
   :doc "macros for binding keys, comes with use-package too"
   :straight t)
-
-(leaf leaf-convert
-  :doc "converts to leaf any sexp passed to it like
-(leaf-convert (use-package benchmark-init
-  :config
-  (add-hook 'after-init-hook 'benchmark-init/deactivate)))"
-  :straight t)
-
+;;; Benchmarking
 (leaf *benchmarking
   :config
   ;; must be put asap after use-package for most complete benchmark. Look at its functions named benchmark-init/...
@@ -356,24 +350,75 @@ buffer is not visiting a file."
     ;; Work around a bug where esup tries to step into the byte-compiled
     ;; version of `cl-lib', and fails horribly.
     (setq esup-depth 0)))
-;;; essential packages for everyone
-(leaf once :doc "wanna speed up your init? here!"
-  :straight (once :type git :host github :repo "emacs-magus/once"))
 
+;;; Default config?
+(leaf time
+  :doc "display of time, date, load numbers, name of mail inbox with new mail, etc..."
+  :unless +apexless ; apexless has time permanently displayed so you don't need this
+  :straight (time :type built-in)
+  :setq
+  (display-time-default-load-average . nil) ; Don't display load average
+  (display-time-24hr-format . t)          ; use hh:mm format instead
+  :config
+  (display-time-mode 1))
+
+(leaf recentf
+  :doc "recent files browsing feature"
+  :straight (recentf :type built-in)
+  
+  :init
+  ;; (once '(:before after-find-file) ;; 0.05s saved
+  ;;   (setq recentf-max-saved-items 10000
+  ;;         recentf-max-menu-items 10000)
+  ;;   (recentf-mode 1))
+  :config
+  (setq recentf-max-saved-items 10000
+        recentf-max-menu-items 10000)
+  (recentf-mode 1) ;; 0.05s lag is worth it
+  )
+
+(leaf saveplace
+  :doc "Remember and restore the last cursor location of opened files. 10/10 package."
+  :straight (saveplace :type built-in)
+  :init
+  (setq save-place-forget-unreadable-files t)
+  (save-place-mode 1)                   ;; the one-time 0.05s lag is worth it
+  )
+
+(leaf *history-setting
+  :setq
+  (history-length . 10000)
+  (history-delete-duplicates . t))
+(leaf savehist
+  :doc "save minibuffer command history"
+  :straight (savehist :type built-in)
+  :require t
+  :setq
+  (savehist-save-minibuffer-history . t)
+  :config
+  (savehist-mode 1))
+
+
+
+
+
+;;; essential packages for everyone
 (leaf xah-fly-keys
   :doc "modal editing, efficient. Prob would have tried meow if I had known it first"
   :straight t
   :require t
-  :bind ((:global-map
+  :bind ((global-map
+          ("C-n" . next-line)
           ("C-v" . +scroll-half-page-down)
           ("M-v" . +scroll-half-page-up)
           ("C-a" . +move-beginning-of-line))
-         (:xah-fly-command-map
+         (xah-fly-command-map
           ("n" . +xfk-command-mode-n)
           ("j" . +xfk-command-mode-j)
           ("l" . +xfk-command-mode-l)
           ("8" . er/expand-region)
           ("<SPC> 1 i" . crux-find-user-init-file)
+          ("<SPC> 1 I" . (lambda () (interactive) (find-file (expand-file-name (concat user-emacs-directory "early-init.el")))))
           ("<SPC> 1 c" . (lambda () (interactive) (require 'calfw) (cfw:open-calendar)))
           ("<SPC> 1 h" . (lambda () (interactive) (dired "~/stuff/compro/healtermon/")))))
   :config
@@ -382,7 +427,7 @@ buffer is not visiting a file."
                             ((or +asses +mango) 'colemak-mod-dh)
                             (t 'qwerty)))
   (xah-fly-keys 1)
-
+  :preface
   (defun +move-beginning-of-line () "moves all the way to the start" (interactive) (move-beginning-of-line 1))
   (defun +xfk-command-mode-n ()
     "in dirvish-mode, does dirvish-narrow, otherwise isearch."
@@ -398,60 +443,52 @@ buffer is not visiting a file."
     "in dirvish-mode, does dired-up-directory, otherwise forwards-char"
     (interactive)
     (cond ((string-equal major-mode "dirvish-mode") (dired-find-file))
-          (t (forward-char))))
-  )
+          (t (forward-char)))))
 (leaf crux
-  :doc "lots of random useful functions"
+  :doc "lots of random useful functions from the emacs Prelude 'distro'"
   :straight t)
-(leaf restart-emacs     ; to restart emacs, durr. Obsolete in emacs 29.
+(leaf restart-emacs ;;  to restart emacs, durr. Obsolete in emacs 29.
   :straight t)
 (leaf puni
+  :doc "leverages built-in features for structural editing, warning: not all-encompassing"
   :straight t
-  :hook (prog-mode-hook eval-expression-minibuffer-setup-hook . puni-mode)
-  :bind ((:puni-mode-map
-          ("C-<right>" . puni-slurp-forward)
-          ("C-<left>" . puni-barf-forward))))
-(leaf expand-region                     ; TODO: test against puni-expand-region and see which I like more, then rebind it in xah-fly-command-map
+  ;; :require t                            ;; something is broken in either leaf or puni 'cuz every other package is fine with this... the autoloads don't seem to work
+  :hook (prog-mode-hook
+         eval-expression-minibuffer-setup-hook . puni-mode)
+  :bind (puni-mode-map
+         :package leaf ;; IDK why this works.. The difference between leaf-keys and bind-keys is, leaf-keys accepts a :package pkg1 pkg2 pk3... which chains `eval-after-load's for those packages before loading keybindings to the maps, while bind-keys will skip the `eval-after-load's. Henceforth if you want it to load immediately while deferring loading of the current package you give it some other already-loaded package, which is definitely leaf... Otherwise it can be nice to create complex criteria to load your keymaps, like here you can ":package (prog-mode whatever-loads-minibuffer)"
+         ("C-<right>" . puni-slurp-forward)
+         ("C-<left>" . puni-barf-forward)))
+(leaf expand-region ; TODO: test against puni-expand-region and see which I like more, then rebind it in xah-fly-command-map
   :doc "a better expand-region than xah-fly-keys'"
   :straight t)
 (leaf xah-find :straight t)
 
 (leaf which-key :straight t :init (which-key-mode))
 
-(leaf savehist
-  :doc "save minibuffer command history"
-  :straight (savehist :type built-in)
-  :require t
-  :preface
-  (prog1 '*history-setting
-    (leaf-handler-leaf-path *history-setting)
-    (leaf-handler-leaf-protect *history-setting
-      (customize-set-variable 'history-length 10000 "Customized with leaf in `*history-setting' block")
-      (customize-set-variable 'history-delete-duplicates t "Customized with leaf in `*history-setting' block")))  
-  :custom
-  (savehist-save-minibuffer-history . t)
-  :config
-  (savehist-mode 1))
 
-(let ((+vertico-count (if +termux 10 20))) ; TODO: figure out how to conditionally set customize
-  (leaf vertico
-    :doc "a vertical autocomplete selection menu"
-    :straight (vertico :files (:defaults "extensions/*"))
-    :require t
-    :bind ((:vertico-map
-            ("M-DEL" . vertico-directory-delete-word)))
-    :custom
-    (vertico-resize . t)
-    (vertico-cycle . t)
-    (vertico-count . +vertico-count)
-    :init
-    (vertico-mode)
-    (vertico-mouse-mode)))
+
+(leaf vertico
+  :doc "a vertical autocomplete selection menu"
+  :straight (vertico :files (:defaults "extensions/*"))
+  :require t
+  :bind ((:vertico-map
+          ("M-DEL" . vertico-directory-delete-word)))
+  :init
+  (vertico-mode)
+  (vertico-mouse-mode)
+  :setq
+  (vertico-resize . t)
+  (vertico-cycle . t)
+  ;; (vertico-count . ( (if +termux 10 20))) ;; ERROR! TODO: figure out how to conditionally set customize
+  :defer-config
+  (setq vertico-count (if +termux 10 20))
+  )
 
 (leaf orderless ;; a completion style
   :straight t
   :require t
-  :custom
+  :setq
   (completion-styles . '(orderless basic))
   (completion-category-overrides . '((file (styles . (partial-completion)))))
   :setq (completion-category-defaults . nil)
@@ -478,14 +515,19 @@ buffer is not visiting a file."
     )
   )
 
-(use-package marginalia ;; annotates the minibuffer like the margins in a book (look on the right side)
-  :bind (:map minibuffer-local-map
-              ("M-A" . marginalia-cycle))
-  :init
-  (setq marginalia-max-relative-age 0)
+(leaf marginalia ;; annotates the minibuffer like the margins in a book (look on the right side)
+  :straight t
+  :after vertico
+  :bind (minibuffer-local-map
+         ("M-A" . marginalia-cycle))
+  :require t
+  :setq
+  (marginalia-max-relative-age . 0)
+  :config
   (marginalia-mode 1))
 
-(use-package consult ;; provides _good shit_ versions of common commands and more
+(leaf consult ;; provides _good shit_ versions of common commands and more
+  :straight t
   :bind (;; C-c bindings (mode-specific-map)
          ("C-c h" . consult-history)
          ("C-c m" . consult-mode-command)
@@ -525,53 +567,63 @@ buffer is not visiting a file."
          ("M-s k" . consult-keep-lines)
          ("M-s u" . consult-focus-lines)
          ("M-s m" . consult-multi-occur)
-         ;; Isearch integration
-         ("M-s e" . consult-isearch-history)
-         :map isearch-mode-map
-         ("M-e" . consult-isearch-history)   ;; orig. isearch-edit-string
-         ("M-s e" . consult-isearch-history) ;; orig. isearch-edit-string
-         ("M-s l" . consult-line) ;; needed by consult-line to detect isearch
-         ("M-s L" . consult-line-multi) ;; needed by consult-line to detect isearch
-         ;; Minibuffer history
-         :map minibuffer-local-map
-         ("M-s" . consult-history) ;; orig. next-matching-history-element
-         ("M-r" . consult-history) ;; orig. previous-matching-history-element
          ;; Misc
          ("<help> a" . consult-apropos)
-         )                
+         ([remap switch-to-buffer] . consult-buffer)
+         ([remap recentf-open-files] . consult-recent-file)
+         ;; ([remap find-file] . consult-find) ;; I'm damn sure this is not a replacement
+         ;; Isearch integration
+         ("M-s e" . consult-isearch-history)
+         (isearch-mode-map
+          :package leaf
+          ("M-e" . consult-isearch-history)   ;; orig. isearch-edit-string
+          ("M-s e" . consult-isearch-history) ;; orig. isearch-edit-string
+          ("M-s l" . consult-line) ;; needed by consult-line to detect isearch
+          ("M-s L" . consult-line-multi) ;; needed by consult-line to detect isearch
+          )
+         ;; Minibuffer history
+         (minibuffer-local-map
+          :package leaf
+          ("M-s" . consult-history) ;; orig. next-matching-history-element
+          ("M-r" . consult-history) ;; orig. previous-matching-history-element
+          ))
+  
   :init
+  ;; CUSTOMISABLE
+  (setq register-preview-delay 0.5)
+  ;; Use Consult to select xref locations with preview
+  (setq xref-show-xrefs-function #'consult-xref)
+  (setq xref-show-definitions-function #'consult-xref)
+
+  ;; NON-CUSTOMISABLE
   ;; Optionally configure the register formatting. This improves the register
   ;; preview for `consult-register', `consult-register-load',
   ;; `consult-register-store' and the Emacs built-ins.
-  (setq register-preview-delay 0.5
-        register-preview-function #'consult-register-format)
+  (setq register-preview-function #'consult-register-format)
+  
   ;; Optionally tweak the register preview window.
   ;; This adds thin lines, sorting and hides the mode line of the window.
   (advice-add #'register-preview :override #'consult-register-window)
 
-  ;; Use Consult to select xref locations with preview
-  (setq xref-show-xrefs-function #'consult-xref
-        xref-show-definitions-function #'consult-xref)
-
-  (global-set-key [remap switch-to-buffer] 'consult-buffer)
-  (global-set-key [remap recentf-open-files] 'consult-recent-file)
-  ;; (global-set-key [remap find-file] 'consult-find)
   (fset 'multi-occur #'consult-multi-occur) ;; drop-in replacement.
   )
-(use-package consult-dir
+(leaf consult-dir
+  :straight t
   :bind (("C-x C-d" . consult-dir)
-         :map vertico-map
-         ("C-x C-d" . consult-dir)
-         ("C-x C-j" . consult-dir-jump-file)))
+         (vertico-map
+          :package vertico
+          ("C-x C-d" . consult-dir)
+          ("C-x C-j" . consult-dir-jump-file))))
 
 (use-package embark
+  :straight t
   :init
   ;; Optionally replace the key help with a completing-read interface
   (setq prefix-help-command #'embark-prefix-help-command)
 
-  :bind (("C-." . embark-act)         ; like a right-click
+  :bind (("C-." . embark-act)           ; like a right-click
          ("M-." . embark-dwim)
-         ("C-h B" . embark-bindings)) ; like a left-click
+         ("C-h B" . embark-bindings))   ; like a left-click
   
   :config
   ;; show Embark via whichkey
@@ -588,16 +640,19 @@ buffer is not visiting a file."
                  (window-parameters (mode-line-format . none))))
   )
 (use-package embark-consult
+  :straight t
   :after (embark consult)
-  :demand t      ; only necessary if you have the hook below
+  :demand t        ; only necessary if you have the hook below
   ;; if you want to have consult previews as you move around an
   ;; auto-updating embark collect buffer
   :hook (embark-collect-mode . consult-preview-at-point-mode))
 
 (use-package wgrep
+  :straight t
   :defer)
 
 (use-package helpful
+  :straight t
   :bind (([remap describe-command] . helpful-command)
          ([remap describe-function] . helpful-callable)
          ([remap describe-key] . helpful-key)
@@ -618,21 +673,33 @@ buffer is not visiting a file."
   )
 
 (use-package elisp-demos
+  :straight t
   :config
   (advice-add 'helpful-update :after #'elisp-demos-advice-helpful-update))
 
 (use-package vundo
+  :straight t
   :defer
   :config
   (setq vundo-glyph-alist vundo-unicode-symbols)
   (set-face-attribute 'vundo-default nil :family "Unifont")
   )
+
+(use-package visual-regexp ;; live highlighting of regexps, replacing replace-regexp w/ visual-regexp
+  :straight t
+  :defer
+  :bind (([remap replace-regexp] . vr/replace)
+         ([remap query-replace-regexp] . vr/query-replace)))
+(use-package visual-regexp-steroids ;; enables changing regex backend
+  :straight t
+  :defer
+  :config
+  (setq vr/engine 'emacs))
+
 ;;; Elisp Programming
 ;; in Emacs, elisp programming is more important than other sorts of programming,
 ;; equivalent to whether the app settings work or not
 ;; suggestions: https://old.reddit.com/r/emacs/comments/zfwsc0/please_recommend_packages_for_editing_elisp/
-
-
 
 ;; (use-package paredit
 ;;   :hook ((emacs-lisp-mode
@@ -646,32 +713,39 @@ buffer is not visiting a file."
 ;;   :bind (:map paredit-mode-map
 ;;               ("M-s" . nil)))
 
-(use-package aggressive-indent
-  :hook ((emacs-lisp-mode
-          lisp-mode
-          clojure-mode) .  aggressive-indent-mode))
+;; modern libraries, depended on by plenty of programs
+(leaf dash :straight t)
+(leaf f :straight t) 
+(leaf s :straight t)
 
-(use-package rainbow-delimiters
-  :hook (prog-mode . rainbow-delimiters-mode)
-  :config
-  (custom-set-faces 
-   '(rainbow-delimiters-depth-0-face ((t (:foreground "dark orange"))))
-   '(rainbow-delimiters-depth-1-face ((t (:foreground "light grey"))))
-   '(rainbow-delimiters-depth-2-face ((t (:foreground "deep pink"))))
-   '(rainbow-delimiters-depth-3-face ((t (:foreground "chartreuse"))))
-   '(rainbow-delimiters-depth-4-face ((t (:foreground "deep sky blue"))))
-   '(rainbow-delimiters-depth-5-face ((t (:foreground "yellow"))))
-   '(rainbow-delimiters-depth-6-face ((t (:foreground "orchid"))))
-   '(rainbow-delimiters-depth-7-face ((t (:foreground "spring green"))))
-   '(rainbow-delimiters-depth-8-face ((t (:foreground "sienna1"))))
-   '(rainbow-delimiters-unmatched-face ((t (:foreground "grey"))))))
+(leaf aggressive-indent
+  :straight t
+  :hook ((emacs-lisp-mode-hook
+          lisp-mode-hook
+          clojure-mode-hook) .  aggressive-indent-mode))
 
-(use-package hideshow
-  :straight nil
-  :hook (prog-mode . hs-minor-mode)
-  :bind (:map prog-mode-map
-              ("A-<tab>" . +fold-toggle)
-              ("A-S-<tab>" . +fold-toggle-all))
+(leaf rainbow-delimiters
+  :straight t
+  :hook (prog-mode-hook . rainbow-delimiters-mode)
+  :custom-face
+  (rainbow-delimiters-depth-0-face . '((t (:foreground "dark orange"))))
+  (rainbow-delimiters-depth-1-face . '((t (:foreground "light grey"))))
+  (rainbow-delimiters-depth-2-face . '((t (:foreground "deep pink"))))
+  (rainbow-delimiters-depth-3-face . '((t (:foreground "chartreuse"))))
+  (rainbow-delimiters-depth-4-face . '((t (:foreground "deep sky blue"))))
+  (rainbow-delimiters-depth-5-face . '((t (:foreground "yellow"))))
+  (rainbow-delimiters-depth-6-face . '((t (:foreground "orchid"))))
+  (rainbow-delimiters-depth-7-face . '((t (:foreground "spring green"))))
+  (rainbow-delimiters-depth-8-face . '((t (:foreground "sienna1"))))
+  (rainbow-delimiters-unmatched-face . '((t (:foreground "grey")))))
+
+(leaf hideshow ; TODO: PROBABLY HARD: make hs-fold not fuck up outli's headers in the case like 2 headers stacked together
+  :doc "code folding! yay!"
+  :straight (hideshow :type built-in)
+  :hook (prog-mode-hook . hs-minor-mode)
+  :bind (prog-mode-map
+         ("A-<tab>" . +fold-toggle)
+         ("A-S-<tab>" . +fold-toggle-all))
   :init
   ;; make a command to toggle all hideshow, taken from hideshow.el top commentary
   (defvar +hs-hide nil "Current state of hideshow for toggling all.")
@@ -705,34 +779,35 @@ buffer is not visiting a file."
   )
 
 (use-package macrostep ;; macroexpand conveniently
+  :straight t
   ;; if you wanna expand use-package macros, if there are no errors in the config, you can set use-package-expand-minimally to t to get a much more readable expansion
   :bind ( :map emacs-lisp-mode-map ("C-c e" . macrostep-mode)
           :map lisp-mode-map ("C-c e" . macrostep-mode))  )
 
 (use-package ipretty ;; eval and pretty-print a sexp
+  :straight t
   :init
   ;; global mode that advices `eval-print-last-sexp' to use ipretty-last-sexp instead
   (ipretty-mode))
 
 (use-package eros ;; Show emacs-lisp eval results in an overlay, CIDER style.
+  :straight t
   :init
   (eros-mode 1))
 
-;; more modern libraries, depended on by plenty of programs
-(use-package dash)
-(use-package f) 
-(use-package s)
 
 
-(use-package string-edit-at-point ; avoid escape nightmares by editing strings in a separate buffer
-  :defer)
-(use-package elisp-docstring-mode ;; syntax highlighting for elisp docstrings, can use after calling string-edit on an elisp docstring
-  :straight (:type git :host github :repo "Fuco1/elisp-docstring-mode")
-  :defer)
+(leaf string-edit-at-point
+  :doc "avoid escape nightmares by editing strings in a separate buffer"
+  :straight t)
+(leaf elisp-docstring-mode
+  :doc "syntax highlighting for elisp docstrings, can use after calling string-edit on an elisp docstring"
+  :straight (elisp-docstring-mode :type git :host github :repo "Fuco1/elisp-docstring-mode"))
 
 ;; highlighting! --------------------------------------------
 
-(use-package highlight-defined        ; extra emacs lisp syntax highlighting
+(use-package highlight-defined          ; extra emacs lisp syntax highlighting
+  :straight t
   :config
   (add-hook 'emacs-lisp-mode-hook 'highlight-defined-mode))
 
@@ -743,33 +818,44 @@ buffer is not visiting a file."
 ;;                       :inherit 'font-lock-string-face)
 ;;  )
 
-(use-package lisp-extra-font-lock ;; TODO: figure why user-defined variables don't get highlight. I'm using highlight-defined instead till then...
-  :hook ((emacs-lisp-mode) . lisp-extra-font-lock-mode))
-(use-package morlock
-  :config
+(leaf lisp-extra-font-lock ;; TODO: figure why user-defined variables don't get highlight. I'm using highlight-defined instead till then...
+  :when nil ;; I value highlight-defined functionality more than quoted color
+  :straight t
+  :hook ((emacs-lisp-mode-hook) . lisp-extra-font-lock-mode))
+(leaf morlock
+  :straight t
+  :defer-config
   (font-lock-add-keywords 'emacs-lisp-mode morlock-el-font-lock-keywords))
 
-(use-package lispxmp               ; Annotate value of lines containing ; => .
+(leaf lispxmp
+  :doc "Annotate value of lines containing ; => ."
+  :straight t
   :init
   (setq byte-compile-warnings '(cl-functions)) ;make it not complain about using the depreciated cl.el instead of cl-lib
   )
 
 (use-package highlight-symbol ; highlight all occurances of symbol at point in buffer
-  :disabled                ; "<f7> e e" binded in  xah-fly-keys also does this
+  :disabled                  ; "<f7> e e" binded in  xah-fly-keys also does this
+  :straight t
   :hook (prog-mode . highlight-symbol-mode))
 
+;;;; ELisp Debugging
+;; see https://github.com/progfolio/.emacs.d/blob/master/init.org#debugging
 
-
+"stop headliine from getting folded"
 ;;; Generally Useful
 (use-package reveal-in-folder ;; Open Finder at location
-  :if +apexless               ; only works on macOS
+  :straight t
+  :if +apexless                         ; only works on macOS
   :defer)
 (use-package terminal-here ;; Open location in external terminal
+  :straight t
   :defer
   :config
   (setq terminal-here-mac-terminal-command 'iterm2)
   )
 (use-package hl-todo ;; highlight "TODO"s, jump between them and also a todo-occur
+  :straight t
   ;; copied from https://git.sjtu.edu.cn/sjtug/doom-emacs/-/blob/master/modules/ui/hl-todo/config.el
   :hook (prog-mode . hl-todo-mode)
   :config
@@ -796,89 +882,108 @@ buffer is not visiting a file."
           ("BUG" error bold)
           ("XXX" font-lock-constant-face bold))))
 
-(use-package visual-regexp ;; live highlighting of regexps, replacing replace-regexp w/ visual-regexp
-  :defer
-  :bind (([remap replace-regexp] . vr/replace)
-         ([remap query-replace-regexp] . vr/query-replace)))
-(use-package visual-regexp-steroids ;; enables changing regex backend
-  :defer
-  :config
-  (setq vr/engine 'emacs))
-(use-package free-keys ;; shows free keys in a buffer
-  :straight (:type git
-                   :host github
-                   :repo "Fuco1/free-keys"))
+(leaf free-keys ;; shows free keys in a buffer
+  :straight (free-keys :type git
+                       :host github
+                       :repo "Fuco1/free-keys"))
 
 ;;; file manager
-;; dired-related settings
-(when +apexless
-  (setq dired-use-ls-dired t
-        insert-directory-program "/opt/homebrew/bin/gls")
-  (setq mac-system-move-file-to-trash-use-finder t))
-(setq delete-by-moving-to-trash t)
-(setq find-file-visit-truename t) ; follow symlinks when visiting files or directories
 
-(setq 
- ;; dired-do-revert-buffer t ;; update dir listing(s) after dired-do-something
- ;; Sensible mark behavior
- dired-mark-region t)
-(use-package dirvish
+(leaf *dired-related
+  :init
+  (when +apexless
+    (setq dired-use-ls-dired t)
+    (setq insert-directory-program "/opt/homebrew/bin/gls")
+    (setq mac-system-move-file-to-trash-use-finder t))
+  (setq delete-by-moving-to-trash t) 
+  (setq find-file-visit-truename t) ; follow symlinks when visiting files or directories
+  (setq 
+   ;; dired-do-revert-buffer t ;; update dir listing(s) after dired-do-something
+   ;; Sensible mark behavior
+   dired-mark-region t)
+  )
+
+(leaf dired
+  :straight
+  (dired     :type built-in)
+  (dired-x   :type built-in)
+  (dired-aux :type built-in)
+  :config
+  (setq dired-mouse-drag-files t)                   ; added in Emacs 29
+  (setq mouse-drag-and-drop-region-cross-program t) ; added in Emacs 29
+  (setq dired-kill-when-opening-new-dired-buffer t)
+  (setq dired-recursive-copies 'always)
+  (setq dired-recursive-deletes 'always)
+  (setq dired-dwim-target t)
+  (setq dired-clean-confirm-killing-deleted-buffers nil)
+  (setq dired-do-revert-buffer t)
+  (setq dired-auto-revert-buffer #'dired-directory-changed-p)
+  (setq wdired-allow-to-change-permissions t)
+  (setq wdired-create-parent-directories t)
+  )
+(leaf wdired
+  :straight (wdired :type built-in)
+  )
+(with-eval-after-load 'dired-x
+  (setq dired-omit-files (concat dired-omit-files "\\|^\\..*$")))
+
+
+
+(leaf dirvish
   :if +apexless
-  :defer
-  :bind              ; Bind `dirvish|dirvish-side|dirvish-dwim' as you see fit
+  :straight t
+  :bind                ; Bind `dirvish|dirvish-side|dirvish-dwim' as you see fit
   (("C-c f" . dirvish-fd)
-   :map dirvish-mode-map              ; Dirvish inherits `dired-mode-map'
-   ("a"   . dirvish-quick-access)
-   ("f"   . dirvish-file-info-menu)
-   ("y"   . dirvish-yank-menu)
-   ("N"   . dirvish-narrow)
-   ("^"   . dirvish-history-last)
-   ("h"   . dirvish-history-jump)     ; remapped `describe-mode'
-   ("s"   . dirvish-quicksort)        ; remapped `dired-sort-toggle-or-edit'
-   ("v"   . dirvish-vc-menu)          ; remapped `dired-view-file'
-   ("TAB" . dirvish-subtree-toggle)
-   ("M-f" . dirvish-history-go-forward)
-   ("M-b" . dirvish-history-go-backward)
-   ("M-l" . dirvish-ls-switches-menu)
-   ("M-m" . dirvish-mark-menu)
-   ("M-t" . dirvish-layout-toggle)
-   ("M-s" . dirvish-setup-menu)
-   ("M-e" . dirvish-emerge-menu)
-   ("M-j" . dirvish-fd-jump)
-   ([mouse-1] . dirvish-subtree-toggle-or-open)
-   ([mouse-2] . dired-mouse-find-file-other-window)
-   ([mouse-3] . dired-mouse-find-file))
+   (dirvish-mode-map                    ; Dirvish inherits `dired-mode-map'
+    ("a"   . dirvish-quick-access)
+    ("f"   . dirvish-file-info-menu)
+    ("y"   . dirvish-yank-menu)
+    ("N"   . dirvish-narrow)
+    ("^"   . dirvish-history-last)
+    ("h"   . dirvish-history-jump)      ; remapped `describe-mode'
+    ("s"   . dirvish-quicksort)         ; remapped `dired-sort-toggle-or-edit'
+    ("v"   . dirvish-vc-menu)           ; remapped `dired-view-file'
+    ("TAB" . dirvish-subtree-toggle)
+    ("M-f" . dirvish-history-go-forward)
+    ("M-b" . dirvish-history-go-backward)
+    ("M-l" . dirvish-ls-switches-menu)
+    ("M-m" . dirvish-mark-menu)
+    ("M-t" . dirvish-layout-toggle)
+    ("M-s" . dirvish-setup-menu)
+    ("M-e" . dirvish-emerge-menu)
+    ("M-j" . dirvish-fd-jump)
+    ([mouse-1] . dirvish-subtree-toggle-or-open)
+    ([mouse-2] . dired-mouse-find-file-other-window)
+    ([mouse-3] . dired-mouse-find-file)))
   :init
   (once '(:hooks pre-command-hook)
     (dirvish-override-dired-mode))
-  :config
-  (dirvish-peek-mode) ;; shows preview minibuffer when scrolling through find-file minibuffer
-  (setq dirvish-hide-details t) ;; hide how dired shows the details on left of file/folder names
-  (setq dirvish-reuse-session nil)
-  (setq dirvish-attributes
-        '(all-the-icons file-size collapse subtree-state vc-state git-msg))
-  (setq dired-listing-switches
-        "-l --almost-all --human-readable --time-style=long-iso --group-directories-first --no-group")
-  (setq dirvish-preview-dispatchers
-        (cl-substitute 'pdf-preface 'pdf dirvish-preview-dispatchers)) ;requires pdftoppm executable
-
+  :setq 
+  (dirvish-hide-details . t) ;; hide how dired shows the details on left of file/folder names
+  (dirvish-reuse-session . nil)
+  (dirvish-attributes . '(all-the-icons file-size collapse subtree-state vc-state git-msg))
+  (dired-listing-switches . "-l --almost-all --human-readable --time-style=long-iso --group-directories-first --no-group")
+  (dirvish-preview-dispatchers . (cl-substitute 'pdf-preface 'pdf dirvish-preview-dispatchers)) ;requires pdftoppm executable
   ;; Height
   ;; '(25 . 35) means
   ;;   - height in single window sessions is 25
   ;;   - height in full-frame sessions is 35
-  (setq dirvish-header-line-height '(25 . 35))
-  (setq dirvish-mode-line-height 15) ; 25 is shorthand for '(25 . 25), why isn't this option working?
-  (setq dirvish-mode-line-format
-        '(:left (sort file-time " " file-size symlink) :right (omit yank index)))
-  (setq dirvish-time-format-string "%Y/%m/%d-%R")
+  (dirvish-header-line-height . '(25 . 35))
+  (dirvish-mode-line-height . 15) ; 25 is shorthand for '(25 . 25), why isn't this option working?
+  (dirvish-mode-line-format . '( :left (sort file-time " " file-size symlink)
+                                 :right (omit yank index)))
+  (dirvish-time-format-string . "%Y/%m/%d-%R")
+  :defer-config  
+  (dirvish-peek-mode) ;; shows preview minibuffer when scrolling through find-file minibuffer
   )
 
 ;;; editing on remote machines 
 (leaf *remote-editing
   :doc "editing on remote machines"
   :config
-  (use-package tramp
+  (leaf tramp
     :straight (tramp :type built-in)
+    :require t
     :after dirvish
     :config
     ;; Some tips to speed up Dired/Dirvish over TRAMP
@@ -890,17 +995,22 @@ buffer is not visiting a file."
     (setq tramp-chunksize 2000)
     (setq tramp-use-ssh-controlmaster-options nil)))
 ;;; Version-control-related 
-(use-package magit ; an amazing front-end to git
+(leaf magit ; an amazing front-end to git
+  :straight t
   :bind ("C-x g" . magit-status))
-(use-package magit-delta ;; syntax hightlighting with delta(command-line program) in magit diffs
-  :hook (magit-mode . magit-delta-mode))
+(leaf magit-delta ;; syntax hightlighting with delta(command-line program) in magit diffs
+  :straight t
+  :hook (magit-mode-hook . magit-delta-mode))
 
-(use-package diff-hl ; highlights diffs in the margins. If you want nicer ones like in vscode, https://ianyepan.github.io/posts/emacs-git-gutter/
-  :hook ((after-init . global-diff-hl-mode)
+(leaf diff-hl
+  :doc "highlights diffs in the margins. If you want nicer ones like in vscode, https://ianyepan.github.io/posts/emacs-git-gutter/"
+  :straight t
+  :hook ((after-init-hook . global-diff-hl-mode)
          (magit-pre-refresh-hook . diff-hl-magit-pre-refresh)
          (magit-post-refresh-hook . diff-hl-magit-post-refresh)))
 ;;; Templates/snippets 
 (use-package tempel
+  :straight t
   ;; Require trigger prefix before template name when completing.
   ;; :custom
   ;; (tempel-trigger-prefix "<")
@@ -934,10 +1044,12 @@ buffer is not visiting a file."
 
 
 (use-package yasnippet
+  :straight t
   :defer)
 ;;; Notes/The Org Ecosystem 
 
 (use-package org
+  :straight t
   :bind (("C-c a" . org-agenda)
          ("C-c l" . org-store-link)
          ("C-c c" . org-capture)
@@ -959,7 +1071,7 @@ buffer is not visiting a file."
   (setq org-startup-indented t)
   (when +apexless
     (setq org-latex-create-formula-image-program 'dvisvgm)
-    (setq org-display-remote-inline-images 'cache);; https://www.fromkk.com/posts/preview-latex-in-org-mode-with-emacs-in-macos/
+    (setq org-display-remote-inline-images 'cache) ;; https://www.fromkk.com/posts/preview-latex-in-org-mode-with-emacs-in-macos/
     ) 
   (setq org-image-actual-width nil)
 
@@ -1003,8 +1115,10 @@ buffer is not visiting a file."
   )
 
 (use-package org-contrib
+  :straight t
   :after org)
 (use-package org-download
+  :straight t
   :after org
   :init
   (setq org-download-method 'directory)
@@ -1012,6 +1126,7 @@ buffer is not visiting a file."
   )
 
 (use-package org-roam
+  :straight t
   :init
   (setq org-roam-v2-ack t)
   (setq org-roam-directory (file-truename (if +termux
@@ -1111,16 +1226,16 @@ Notes:
       (error "")))
   
 
-  (use-package emacsql)
-  (if +termux (use-package emacsql-sqlite3) (use-package emacsql-sqlite))
-  (use-package magit-section)
+  (use-package emacsql :straight t)
+  (if +termux (use-package emacsql-sqlite3 :straight t) (use-package emacsql-sqlite :straight t))
+  (use-package magit-section :straight t)
   (org-roam-db-autosync-mode) ;; need org-roam-sqlite-available-p to be true
   ;; (use-package consult-org-roam
   ;;   :config
   ;;   (consult-org-roam-mode 1))
   (leaf consult-org-roam
     :straight t
-    :config
+    :init
     (consult-org-roam-mode 1))
   
   (defun +org-roam-node-insert-immediate (arg &rest args) ;; was removed in v2, from https://systemcrafters.net/build-a-second-brain-in-emacs/5-org-roam-hacks/
@@ -1132,6 +1247,7 @@ Notes:
   (bind-keys :map org-mode-map ("C-c n I"  . +org-roam-node-insert-immediate))
 
   (use-package consult-org-roam ; keeping this around for live-preview when searching org-roam.
+    :straight t
     :defer
     :custom
     (consult-org-roam-grep-func #'consult-ripgrep)
@@ -1144,19 +1260,19 @@ Notes:
            ("C-c n b" . consult-org-roam-backlinks)))
     ))
 
-(when +apexless ; org-roam-ui ;; if you run the (use-package, the packages will be git cloned, even if they are not loaded
-  (use-package websocket :after org-roam)
-  (use-package simple-httpd)
-  (use-package org-roam-ui
-    :straight (:host github :repo "org-roam/org-roam-ui" :branch "main" :files ("*.el" "out"))
-    :after (org-roam websocket simple-httpd f)
-    :defer
-    ;;  :hook (after-init . org-roam-ui-mode)
-    :config
-    (setq org-roam-ui-sync-theme t
-          org-roam-ui-follow t
-          org-roam-ui-update-on-save t
-          org-roam-ui-open-on-start t)))
+;; org-roam-ui
+(leaf websocket :straight t)
+(leaf simple-httpd :straight t)
+(use-package org-roam-ui
+  :straight (org-roam-ui :host github :repo "org-roam/org-roam-ui" :branch "main" :files ("*.el" "out"))
+  :after (org-roam websocket simple-httpd f)
+  :defer
+  ;;  :hook (after-init . org-roam-ui-mode)
+  :config
+  (setq org-roam-ui-sync-theme t
+        org-roam-ui-follow t
+        org-roam-ui-update-on-save t
+        org-roam-ui-open-on-start t))
 ;;; LaTeX related 
 (use-package xenops ;; automatic live math preview that gets out of your way
   :hook ((latex-mode LaTeX-mode org-mode). xenops-mode)
@@ -1344,6 +1460,7 @@ Notes:
 
 (use-package eshell
   ;; https://emacsconf.org/2022/talks/eshell/
+  :straight (eshell :type built-in)
   :defer
   :init
   (setq eshell-history-size 10000)
@@ -1363,12 +1480,14 @@ from https://www.n16f.net/blog/clearing-the-eshell-buffer/"
       (insert input))))
 
 (use-package eshell-syntax-highlighting
+  :straight t
   :after esh-mode ; eshell-mode here doesn't work, the file where eshell-mode is defined is called esh.el. Coincidence? I think not.
   :config
   ;; Enable in all Eshell buffers.
   (eshell-syntax-highlighting-global-mode +1))
 
 (use-package eshell-vterm
+  :straight t
   :after eshell
   :config
   (eshell-vterm-mode))
@@ -1404,25 +1523,25 @@ from https://www.n16f.net/blog/clearing-the-eshell-buffer/"
 
 (leaf hippie-exp
   :straight (hippie-exp :type built-in)
-  ;; :custom
-  ;; ;; mess with ordering of this list as simple configuration
-  ;; (hippie-expand-try-functions-list
-  ;;  .
-  ;;  '(try-complete-file-name-partially
-  ;;    try-complete-file-name
-  ;;    try-expand-all-abbrevs
-  ;;    try-expand-list try-expand-line
-  ;;    try-expand-dabbrev
-  ;;    try-expand-dabbrev-all-buffers
-  ;;    try-expand-dabbrev-from-kill
-  ;;    try-complete-lisp-symbol-partially
-  ;;    try-complete-lisp-symbol))
+  :setq
+  ;; mess with ordering of this list as simple configuration
+  (hippie-expand-try-functions-list
+   .
+   '(try-complete-file-name-partially
+     try-complete-file-name
+     try-expand-all-abbrevs
+     try-expand-list try-expand-line
+     try-expand-dabbrev
+     try-expand-dabbrev-all-buffers
+     try-expand-dabbrev-from-kill
+     try-complete-lisp-symbol-partially
+     try-complete-lisp-symbol))
   )
 
 (leaf company
   :doc " CompAny = Complete Anything"
   :straight t
-  :bind (:company-active-map
+  :bind (company-active-map
          ("<return>" . nil)
          ("RET" . nil)
          ("M-<return>" . company-complete-selection)
@@ -1431,14 +1550,14 @@ from https://www.n16f.net/blog/clearing-the-eshell-buffer/"
          ("TAB" . company-abort)
          )
   ;; :hook ((prog-mode) . company-mode)
-  :custom
-  (company-minimum-prefix-length . 1)
-  (company-idle-delay . 0.0)          ; default is 0.2
+  :defer-config
+  (setq company-minimum-prefix-length 1)
+  (setq company-idle-delay 0.0)            ; default is 0.2
   )
 
 (use-package company-posframe ; use posframes for the popup, and also comes with icon support, plus backend-showing out-of-the-box
   ;;  DISCLAIMER: frame saving with burly saves the posframes, and of course, gives error when it tries to restore a #<buffer item>, "Invalid Syntax "#" "
-
+  :straight t
   :when (posframe-workable-p)
   :after company
   :hook (company-mode . company-posframe-mode)
@@ -1457,23 +1576,23 @@ from https://www.n16f.net/blog/clearing-the-eshell-buffer/"
                                           corfu-quit-no-match t
                                           corfu-auto nil)
                           (corfu-mode 1))))
-  :bind (:map corfu-map
-              ;; unfuck the mappings check corfu-mode-map & (defvar corfu-map ...) in corfu.el
-              ([remap beginning-of-buffer] . nil)
-              ([remap end-of-buffer] . nil)
-              ([remap scroll-down-command] . nil)
-              ([remap scroll-up-command] . nil)
-              ([remap next-line] . nil)
-              ([remap previous-line] . nil)
-              ("RET" . nil)
-              ("<return>" . nil)
-              ;; my preferred mappings
-              ("M-<return>" . corfu-insert)
-              ("C-<return>" . corfu-insert)
-              ("C-n" . corfu-next)    ; also can use up/down arrow keys
-              ("C-p" . corfu-previous)
-              ("M-n" . corfu-scroll-up)
-              ("M-p" . corfu-scroll-down)) 
+  :bind ((:map corfu-map)
+         ;; unfuck the mappings check corfu-mode-map & (defvar corfu-map ...) in corfu.el
+         ([remap beginning-of-buffer] . nil)
+         ([remap end-of-buffer] . nil)
+         ([remap scroll-down-command] . nil)
+         ([remap scroll-up-command] . nil)
+         ([remap next-line] . nil)
+         ([remap previous-line] . nil)
+         ("RET" . nil)
+         ("<return>" . nil)
+         ;; my preferred mappings
+         ("M-<return>" . corfu-insert)
+         ("C-<return>" . corfu-insert)
+         ("C-n" . corfu-next)    ; also can use up/down arrow keys
+         ("C-p" . corfu-previous)
+         ("M-n" . corfu-scroll-up)
+         ("M-p" . corfu-scroll-down)) 
   :custom 
   ;; (corfu-cycle t)                ;; Enable cycling for `corfu-next/previous'
   (corfu-auto t) ;; Enable auto completion
@@ -1510,16 +1629,21 @@ from https://www.n16f.net/blog/clearing-the-eshell-buffer/"
   )
 
 (use-package corfu-terminal ;; use popup/popon instead of childframes for GUI-less setup
+  :straight t
   :after corfu
   :config
   (unless (display-graphic-p)
     (corfu-terminal-mode +1)))
 (use-package kind-icon ;; Icons in corfu!
+  :straight t
   :after corfu
   :custom
   (kind-icon-default-face 'corfu-default) ; to compute blended backgrounds correctly
+  :config 
+  (add-to-list 'corfu-margin-formatters #'kind-icon-margin-formatter)
   )
 (use-package cape ; adds capf backends and functions to deal with and convert from company backends
+  :straight t
   :bind (("C-c p p" . completion-at-point) ;; capf
          ("C-c p t" . complete-tag)        ;; etags
          ("C-c p d" . cape-dabbrev)        ;; or dabbrev-completion
@@ -1553,23 +1677,23 @@ from https://www.n16f.net/blog/clearing-the-eshell-buffer/"
   ;; The Capf has undesired side effects on Emacs 28 and earlier. UNCOMMENT WHEN EMACS 29 AND SEE WHAT IT DOES
   (advice-add 'pcomplete-completions-at-point :around #'cape-wrap-silent)
   (advice-add 'pcomplete-completions-at-point :around #'cape-wrap-purify)
-
-  :config 
-  (add-to-list 'corfu-margin-formatters #'kind-icon-margin-formatter))
+  )
 
 ;;; General Programming 
 ;; HOW TO USE: C-u extended-command devdocs to set new default docset to search, otherwise just search normally with command devdocs-lookup
 (use-package devdocs
-  :defer
+  :straight t
   :init
   (add-hook 'python-mode-hook
             (lambda () (setq-local devdocs-current-docs '("python~3.10"))))
   :bind ("C-h D" . devdocs-lookup))
 
-(use-package rainbow-mode ;; colors hex colors
-  :hook (prog-mode . rainbow-mode))
+(leaf rainbow-mode ;; colors hex colors
+  :straight t
+  :hook (prog-mode-hook . rainbow-mode))
 
 (use-package tree-sitter              ; semantic structural knowledge of code
+  :straight t
   :hook ( (agda-mode
            sh-mode
            c-mode
@@ -1616,13 +1740,16 @@ from https://www.n16f.net/blog/clearing-the-eshell-buffer/"
            yaml-mode
            zig-mode). tree-sitter-mode))
 (use-package tree-sitter-langs        ; language pack for tree-sitter
+  :straight t
   :after tree-sitter
   :hook (tree-sitter-after-on . tree-sitter-hl-mode))
 (use-package ts-fold                  ; cold-folding with tree-sitter
   :straight (ts-fold :type git :host github :repo "emacs-tree-sitter/ts-fold")
   :after tree-sitter)
 
-(use-package apheleia ; asynchronous code formatting
+(leaf apheleia
+  :straight t
+  :doc "asynchronous code formatting"
   ;; :hook ((c-mode csharp-mode c++-mode) . apheleia-mode)
   ;; :init
   ;; (apheleia-global-mode +1) ;; commented out 'cuz I don't like python's black formatter; I like it to be more compact. So I got pycodestyle and flake8 to shut up
@@ -1635,9 +1762,11 @@ from https://www.n16f.net/blog/clearing-the-eshell-buffer/"
 
 ;;; Language Server Protocol(LSP)-related
 ;;;; Eglot-related
-(use-package xref)
-(use-package project
-  :config
+(leaf xref
+  :straight t)
+(leaf project
+  :straight t
+  :defer-config
   ;; from https://christiantietze.de/posts/2022/03/mark-local-project.el-directories/
   ;; make project.el recognise any directory with a .project file to be the project,
   ;; for rapid prototyping. Stolen from karthink's project-x package
@@ -1667,14 +1796,15 @@ variable `project-local-identifier' to be considered a project."
   (customize-set-variable 'project-find-functions
                           (list #'project-try-vc
                                 #'project-local-try-local)))
-(use-package eldoc
-  :config
+(leaf eldoc
+  :defer-config
   (setq eldoc-echo-area-use-multiline-p nil) ; fucking stop using multiline echo area for your documentation, it's a screen-wide annoyance
   )
-(use-package flymake
-  :bind (:map flymake-mode-map
-              ("C-#" . flymake-goto-next-error)
-              ("C-$" . flymake-goto-prev-error)))
+(leaf flymake
+  :straight t
+  :bind ((flymake-mode-map
+          ("C-#" . flymake-goto-next-error)
+          ("C-$" . flymake-goto-prev-error))))
 (use-package eglot
   :hook ((python-mode c-mode c++-mode rust-mode nix-mode clojure-mode julia-mode
                       ;; LaTeX-mode
@@ -1762,41 +1892,47 @@ variable `project-local-identifier' to be considered a project."
 ;;; Ruby Programming 
 ;; see professional setup: https://old.reddit.com/r/emacs/comments/xqojo7/emacs_and_rails/iqbh0id/
 ;;; Other-languages Programming 
+
 (use-package matlab-mode
   :defer t)
 (use-package fish-mode              ; fish shell scripting syntax highlighting
   :defer t) 
-(when (or +mango +nix-on-droid +apexless)
-  (use-package nix-mode               ; for writing nix expressions
-    :defer
-    :config
-    (defun +rebuild-nix-config ()
-      (interactive)
-      (+execute-in-vterm
-       "cd ~/stuff/compro/healtermon/nixconfig/ && ./result/sw/bin/darwin-rebuild switch --flake . --show-trace"))
-    :bind (:map nix-mode-map ("C-c C-c" . +rebuild-nix-config))
-    ))
 
+(leaf nix-mode
+  :doc "for writing nix expressions"
+  :when (or +mango +nix-on-droid +apexless)
+  :straight t
+  :defer-config
+  (defun +rebuild-nix-config ()
+    (interactive)
+    (+execute-in-vterm
+     "cd ~/stuff/compro/healtermon/nixconfig/ && ./result/sw/bin/darwin-rebuild switch --flake . --show-trace"))
+  :bind (nix-mode-map
+         :package nix-mode
+         ("C-c C-c" . +rebuild-nix-config))
+  )
 
-(when (or (+system-name? "mango") +durian)
-  (use-package guix ; interface for the guix package manager
-    ))
+(leaf guix
+  :doc "interface for the guix package manager"
+  :when (or +mango +durian)
+  :straight t)
 
 ;;; Password-Manager 
-(use-package bitwarden
-  :straight (:type git
-                   :host github
-                   :repo "seanfarley/emacs-bitwarden")
+(leaf bitwarden
+  :straight (bitwarden :type git
+                       :host github
+                       :repo "seanfarley/emacs-bitwarden")
   :init
   (setq bitwarden-user user-mail-address)
   ;; (bitwarden-auth-source-enable) ;; don't need it (yet)
   )
 ;;; Communication Protocols 
-(use-package elpher ; a gopher and gemini client, super simple to use
-  :defer)
+(leaf elpher ; a gopher and gemini client, super simple to use
+  :straight t)
 
 (use-package mastodon ; mastodon client
   ;; not practical LMAO I'd rather use Mastonaut
+  :straight t
   :defer 
   :init
   ;; change these whenever you wanna connect to another server
@@ -1804,7 +1940,7 @@ variable `project-local-identifier' to be considered a project."
         mastodon-active-user "healtermon"))
 
 (use-package ement ; matrix client and hence also IRC
-  :straight (:type git
+  :straight (ement :type git
                    :host github
                    :repo "alphapapa/ement.el")
   :defer)
@@ -1812,6 +1948,7 @@ variable `project-local-identifier' to be considered a project."
 (use-package circe ; IRC Client; takes the lessons learnt from ERC and is more easily extensible, and has nicer documentation IMO. Also since it's simpler it's easier to undertand, though also very noob-unfriendly from experience (see below)
   ;; Q: honestly I still don't know how to login without using circe-network-options, unlike in ERC where they prompt you, circe doesn't seem to let you msg ppl?
   ;; A: well it's actually 'cuz "/msg NickServ IDENTIFY user pass" opens in another buffer, which if you didn't notice and typed the wrong password, makes it seem like nothing happened... So it is a beautiful client after all, separating all the chats :)
+  :straight t
   :defer
   :config
   (setq circe-network-options
@@ -1857,7 +1994,7 @@ variable `project-local-identifier' to be considered a project."
   )
 
 (use-package erc
-  :straight (:type built-in)
+  :straight (erc :type built-in)
   :defer
   :config
   (setq erc-nick "healtermon")
@@ -1868,10 +2005,12 @@ variable `project-local-identifier' to be considered a project."
 
   )
 (use-package erc-hl-nicks
+  :straight t
   :after erc
   :config
   (add-to-list 'erc-modules 'hl-nicks))
 (use-package erc-image
+  :straight t
   :after erc
   :config
   (setq erc-image-inline-rescale 300)
@@ -1882,11 +2021,9 @@ variable `project-local-identifier' to be considered a project."
 (leaf telega
   :doc "GOATed Telegram Client"
   :straight t
-  :custom
+  :setq
+  ;; has to be set before calling telega command, can be after loading telega.el
   (telega-server-libs-prefix . "/opt/homebrew/Cellar/tdlib/HEAD-d581e04/"))
-
-
-
 
 (use-package google-this
   :commands (google-this-translate-query-or-region) ;; there's no autoload for just this 1 command, but there is for the 15 other commands. Why?
@@ -1904,33 +2041,28 @@ variable `project-local-identifier' to be considered a project."
 ;;; Prettifying Everything 
 (add-hook 'prog-mode-hook #'global-prettify-symbols-mode) ; prettify some symbols in prog-mode derivatives
 
-(use-package all-the-icons            ; for dashboard & dirvish & citar
-  :defer t
-  :config (setq all-the-icons-scale-factor 1.0)
-  )
-(leaf all-the-icons                   ; for dashboard & dirvish & citar
+(leaf all-the-icons
+  :doc "for dashboard & dirvish & citar, on first install, run all-the-icons-install-fonts"
   :straight t
-  :config (setq all-the-icons-scale-factor 1.0)
+  :defer-config (setq all-the-icons-scale-factor 1.0)
   )
 
-(use-package all-the-icons-completion ; adds icons to minibuffer completion
+(leaf all-the-icons-completion
+  :doc "adds icons to minibuffer completion"
+  :straight t
   :after (marginalia all-the-icons)
   :init (all-the-icons-completion-mode)
-  :hook (marginalia-mode . all-the-icons-completion-marginalia-setup) ; makes the mode follow marginalia-mode when on and off
+  :hook (marginalia-mode-hook . all-the-icons-completion-marginalia-setup) ; makes the mode follow marginalia-mode when on and off
   )
 
 ;; Addtional syntax highlighting for dired
 (use-package diredfl
-  :hook (dired-mode . diredfl-mode)
+  :straight t
+  :hook ((dired-mode-hook dirvish-directory-view-mode-hook) . diredfl-mode)
   :config (set-face-attribute 'diredfl-dir-name nil :bold t))
 
 
 ;; from https://bytemeta.vip/index.php/repo/alexluigit/emacs-grandview
-(defvar +font-size 140)
-(defvar +default-font "mononoki Nerd Font")
-(defvar +fixed-font "mononoki Nerd Font") ; for info
-(defvar +variable-font "Sarasa Mono SC")  ; variable-pitch font
-(defvar +CJK-font "LXGW WenKai Mono") ; Chinese, Japanese, Korean characters
 
 ;;;###autoload
 (defun +font-setup (&optional frame)
@@ -1970,6 +2102,8 @@ variable `project-local-identifier' to be considered a project."
 (setq +variable-font "ETBembo")
 (setq +CJK-font "LXGW WenKai Mono")
 
+
+
 (+font-setup)
 
 ;;;###autoload
@@ -1997,10 +2131,10 @@ variable `project-local-identifier' to be considered a project."
 ;; (any change needs a theme re-load to take effect).
 (once '(:hooks after-init-hook)
   (use-package standard-themes ;; MY FAVOURITE THEME, default-dark with "#212121" background, which is emacs-mac's default
-    :straight (:type git
-                     :host github
-                     :buffer read-only
-                     :repo "protesilaos/standard-themes")
+    :straight (standard-themes :type git
+                               :host github
+                               :buffer read-only
+                               :repo "protesilaos/standard-themes")
     :config
     ;; Read the doc string of each of those user options.  These are some
     ;; sample values.
@@ -2043,10 +2177,12 @@ This function is added to the `standard-themes-post-load-hook'."
     )
   )
 
-(use-package minions
-  :hook (after-init . minions-mode))
+(leaf minions
+  :straight t
+  :hook (after-init-hook . minions-mode))
 
 (use-package doom-modeline
+  :straight t
   :hook (after-init . doom-modeline-mode)
   :config
   (column-number-mode 1)
@@ -2082,7 +2218,7 @@ This function is added to the `standard-themes-post-load-hook'."
 
   ;; ;; Wheter groups should be excludede when gnus automatically being updated.
   ;; (setq doom-modeline-gnus-excluded-groups '("dummy.group"))
-  (setq doom-modeline-irc nil)        ; irc unread messages number 
+  (setq doom-modeline-irc nil)          ; irc unread messages number 
   ;; (setq doom-modeline-irc-stylize 'identity) ; convert some IRC buffers to their font-awesome icon
 
   ;; ;; Change the executables to use for the language version string
@@ -2100,10 +2236,12 @@ This function is added to the `standard-themes-post-load-hook'."
   )
 
 (use-package valign
+  :straight t
   :hook (org-mode . valign-mode)
   :init (setq valign-fancy-bar t))
 
 (use-package org-modern
+  :straight t
   :defer t
   :hook
   (org-agenda-finalize . org-modern-agenda)
@@ -2113,6 +2251,7 @@ This function is added to the `standard-themes-post-load-hook'."
 ;; un-emphasize when cursor is on element
 ;; will fail to detect elements that are nested inside "certain other elements", like comments or document titles
 (use-package org-appear
+  :straight t
   :defer
   :after org
   :hook (org-mode . org-appear-mode)
@@ -2124,6 +2263,7 @@ This function is added to the `standard-themes-post-load-hook'."
         org-appear-autosubmarkers t))
 
 (use-package org-sticky-header
+  :straight t
   :defer
   ;; :hook (org-mode . org-sticky-header-mode)
   )
@@ -2131,11 +2271,11 @@ This function is added to the `standard-themes-post-load-hook'."
 
 
 ;;; For Fun / Useless / Miscellaneous 
-(use-package elcord ;; enables the "in emacs editing xxx" discord status, use "(elcord-mode)"
-  :defer)
+(leaf elcord ;; enables the "in emacs editing xxx" discord status, use "(elcord-mode)"
+  :straight t)
 
-(use-package fsbot-data-browser ; fsbot is the IRC bot at #emacs@Libera.Chat
-  :defer)
+(leaf fsbot-data-browser ; fsbot is the IRC bot at #emacs@Libera.Chat
+  :straight t)
 ;;; Graveyard 
 ;; this package.el stuff is just here 'cuz I'll definitely forget the structure of this if ever need be
 ;; ;; This use-package.el code is kept to enable browsing of MELPA packages. It says package-archives is a void variable...
@@ -2382,27 +2522,31 @@ This function is added to the `standard-themes-post-load-hook'."
 ;;   :config
 ;;   (define-key company-mode-map [remap completion-at-point] #'consult-company)
 ;;   )
-
+"stop hs-mode from folding the header"
 ;;; Doesn't work yet / To-test 
 (use-package emms
+  :straight t
   :defer
   :config
   (emms-minimalistic))
 
 (use-package ox-twbs ;; ox-html with more modern styling
+  :straight t
   :after org-roam
   )
 
 ;; #emacs@Libera.Chat <thuna`> for youtube specifically, elfeed + youtube-dl + mpv is pretty much all you need
 ;; use this to get rss feed of a youtube channel:
 ;; https://www.youtube.com/feeds/videos.xml?channel_id=<CHANNEL-ID>
-(use-package elfeed
-  :defer)
-(use-package elfeed-tube
+(leaf elfeed
+  :straight t)
+(leaf elfeed-tube
+  :straight t
   :after elfeed)
 
 ;; for haskell setup, refer to https://github.com/patrickt/emacs#haskell
 (use-package haskell-mode
+  :straight t
   :defer
   ;; from https://github.com/patrickt/emacs/blob/master/readme.org
   ;; :bind (:map haskell-mode-map
@@ -2414,7 +2558,8 @@ This function is added to the `standard-themes-post-load-hook'."
   ;;             ("C-c m"   . haskell-compile)))
   )
 (use-package nix-haskell-mode
-  :disabled ; enable for cabal projects and have a look
+  :straight t
+  :disabled                          ; enable for cabal projects and have a look
   :after (nix-mode haskell-mode)
   :hook (haskell-mode . nix-haskell-mode))
 
@@ -2431,43 +2576,52 @@ This function is added to the `standard-themes-post-load-hook'."
 ;; (org-babel-jupyter-override-src-block "python")
 ;; ;;(setq ob-async-no-async-languages-alist '("python" "jupyter-python")) ; if you use ob-async
 
-(use-package pyenv ; what does this do?
+(use-package pyenv                      ; what does this do?
+  :straight t
   :defer t)
 (use-package anaconda-mode
+  :straight t
   :bind (("C-c C-x" . next-error))
   :hook (python-mode . anaconda-mode))
 
 
-(use-package company-anaconda ; anaconda backend for company-mode
+(use-package company-anaconda           ; anaconda backend for company-mode
+  :straight t
   :after company
   :config
   (add-to-list 'company-backends '(company-anaconda :with company-capf)))
 
 (use-package pyimport ;; manage python imports from emacs! pyimport-insert-missing requires another buffer open with an example of importing the missing library
+  :straight t
   :after python-mode)
 
 ;; https://old.reddit.com/r/emacs/comments/x6rg1u/rust_with_emacs/inb9qka/
 (use-package rust-mode
+  :straight t
   :defer
   :hook (rust-mode . cargo-minor-mode)
   :config
   (setq rust-format-on-save t)
   :custom-face
   (rust-question-mark-face ((t (:inherit font-lock-builtin-face :foreground "#ff0000" :weight bold)))))
-(use-package rustic
-  :defer
+(leaf rustic
+  :when nil ;; in the name of speed
+  :straight t
   ;; from https://github.com/patrickt/emacs/blob/master/readme.org
   ;; :bind (:map rustic-mode-map
   ;;             ("C-c a t" . rustic-cargo-current-test)
   ;;             ("C-c m" . rustic-compile))
   )
 (use-package cargo
+  :straight t
   :defer)
 
 (use-package racket-mode
+  :straight t
   :defer)
 
-(use-package geiser-mit ; idk I can't get MIT-Scheme repl to connect to geiser
+(use-package geiser-mit   ; idk I can't get MIT-Scheme repl to connect to geiser
+  :straight t
   :defer
   :commands geiser-mit)
 
@@ -2483,21 +2637,23 @@ This function is added to the `standard-themes-post-load-hook'."
   (require 'lsp-bridge)
   (global-lsp-bridge-mode))
 
-(use-package kotlin-mode
-  :defer)
+(leaf kotlin-mode
+  :straight t
+  )
 ;; currently broken due to sly's bug when describe-mode
-(use-package mode-minder ; look at major-mode hierarchy
-  :straight (:type git :host github :repo "jdtsmith/mode-minder"))
+(leaf mode-minder ; look at major-mode hierarchy
+  :straight (mode-minder :type git :host github :repo "jdtsmith/mode-minder"))
 
-(use-package lua-mode
-  :defer)
+(leaf lua-mode
+  :straight t)
 
-(use-package go-mode
-  :defer)
-(use-package go-snippets
-  :after (go-mode yasnippet)
-  :defer)
+(leaf go-mode
+  :straight t)
+(leaf go-snippets
+  :straight t
+  :after (go-mode yasnippet))
 (use-package gotest
+  :straight t
   :defer
   ;; from https://github.com/patrickt/emacs/blob/master/readme.org
   ;; :bind (:map go-mode-map
@@ -2507,32 +2663,34 @@ This function is added to the `standard-themes-post-load-hook'."
   )
 
 (use-package markdown-mode
+  :straight t
   :mode (("README\\.md\\'" . gfm-mode))
   :hook (gfm-mode . visual-line-mode)
   :init
   (setq markdown-command "multimarkdown")
   )
-(use-package toml-mode
-  :defer)
-(use-package yaml-mode
-  :defer)
+(leaf toml-mode
+  :straight t)
+(leaf yaml-mode
+  :straight t)
 
-(use-package dyalog-mode ; APL hahahahaha
-  :defer)
+(leaf dyalog-mode
+  :doc "APL hahahahaha"
+  :straight t)
 
-(use-package dockerfile-mode
-  :defer)
-(use-package dhall-mode
-  :defer)
+(leaf dockerfile-mode
+  :straight t)
+(leaf dhall-mode
+  :straight t)
 
 ;; ;; commented out 'cuz it takes so long to load wtf
-;; (use-package elm-mode
-;;   :defer
-;;   :hook ((elm-mode . elm-format-on-save-mode) ; requires elm-format to be installed(outside of emacs)
-;;          (elm-mode . elm-indent-mode)))
+;; (leaf elm-mode
+;;   :straight t
+;;   :hook ((elm-mode-hook . elm-format-on-save-mode) ; requires elm-format to be installed(outside of emacs)
+;;          (elm-mode-hook . elm-indent-mode)))
 
-(use-package elixir-mode
-  :defer)
+(leaf elixir-mode
+  :straight t)
 
 
 
@@ -2569,19 +2727,23 @@ This function is added to the `standard-themes-post-load-hook'."
 
 ;;; TESTING GROUNDS
 
-(use-package burly ;; bookmark window or frame configurations
-  :defer)
+(leaf burly ;; bookmark window or frame configurations
+  :straight t)
 
-(use-package org-pdftools ;; for links to specific pages in a PDF
-  :defer)
+(leaf org-pdftools ;; for links to specific pages in a PDF
+  :straight t  )
 
-(setq calendar-date-style 'iso) ;; YYYY/mm/dd
-(setq calendar-week-start-day 1)
+(leaf calendar
+  :straight (calendar :type built-in)
+  :setq
+  (calendar-date-style . 'iso) ;; YYYY/mm/dd
+  (calendar-week-start-day . 1))
 (setq calendar-time-display-form '(24-hours ":" minutes))
 (setq calendar-latitude 1.290270)
 (setq calendar-longitude 103.851959)
 
 (use-package org-gcal ;; sync google calendar events
+  :straight t
   :defer
   :init
   (setq org-gcal-down-days 60
@@ -2596,6 +2758,7 @@ This function is added to the `standard-themes-post-load-hook'."
 ;; public address in iCal format:https://calendar.google.com/calendar/ical/healtermon%40gmail.com/public/basic.ics
 
 (use-package calfw ;; calendar framework
+  :straight t
   :commands (cfw:open-calendar-buffer)
   :config
   ;; better frame for calendar, copied from doom config
@@ -2634,7 +2797,7 @@ This function is added to the `standard-themes-post-load-hook'."
   )
 
 (use-package org-hyperscheduler
-  :straight (:type git :host github :repo "dmitrym0/org-hyperscheduler" :files ("*"))
+  :straight (org-hyperscheduler :type git :host github :repo "dmitrym0/org-hyperscheduler" :files ("*"))
   :defer
   )
 (defun org-agenda-add-time-grid-maybe (list ndays todayp)
@@ -2718,12 +2881,16 @@ TODAYP is t when the current agenda view is on today."
 
 
 (use-package forge ;; for working with git forges
+  :straight t
   :defer)
-(use-package org-contacts :defer)
+(use-package org-contacts
+  :straight t
+  :defer)
 
 
 ;;; Julia Programming 
 (use-package julia-mode ; for julia programming, julia-vterm, ob-julia-vterm and julia-mode. Alternatively, also check out julia-repl
+  :straight t
   :mode "\\.jl\\'"
   :interpreter ("julia" . julia-mode)
   :init
@@ -2736,7 +2903,7 @@ TODAYP is t when the current agenda view is on today."
     (font-lock-add-keywords
      mode
      `((,(let ((OR "\\|"))
-           (concat "\\("  ; stolen `matlab.el' operators first
+           (concat "\\("                ; stolen `matlab.el' operators first
                    ;; `:` defines a symbol in Julia and must not be highlighted
                    ;; as an operator. The only operators that start with `:` are
                    ;; `:<` and `::`. This must be defined before `<`.
@@ -2747,7 +2914,7 @@ TODAYP is t when the current agenda view is on today."
                    "==" OR
                    "=>" OR
                    "\\<xor\\>" OR
-                   "[-+*\\/^&|$]=?" OR  ; this has to come before next (updating operators)
+                   "[-+*\\/^&|$]=?" OR ; this has to come before next (updating operators)
                    "[-^&|*+\\/~]" OR
                    ;; Julia variables and names can have `!`. Thus, `!` must be
                    ;; highlighted as a single operator only in some
@@ -2765,10 +2932,12 @@ TODAYP is t when the current agenda view is on today."
         1 font-lock-type-face))))
   )
 
-(use-package julia-snail
+(leaf julia-snail
+  :straight t
   :hook (julia-mode . julia-snail-mode))
 
-(use-package eglot-jl
+(leaf eglot-jl
+  :straight t
   :after (eglot julia-mode)
   :hook (julia-mode . eglot-jl-init)
   :init
@@ -2780,93 +2949,113 @@ TODAYP is t when the current agenda view is on today."
 
 ;;; Clojure Programming 
 (use-package cider
+  :straight t
   :defer
   :config
   (setq cider-repl-display-help-banner t))
 
-(use-package macrostep-geiser         ; macrostep in CIDER!
+(use-package macrostep-geiser           ; macrostep in CIDER!
+  :straight t
   :after cider-mode
   :bind (:map cider-mode-map ("C-c e" . macrostep-mode))
   :init
   (add-hook 'cider-mode-hook #'macrostep-geiser-setup))
 
 (use-package kibit-helper ; uses Clojure's core.logic to find functions in standard library that are abbreviations of your code
+  :straight t
   :defer)
 
 (use-package clj-refactor
   ;; try cljr-add-missing-libspec!
+  :straight t  
   :defer
   :config
   (defun +my-clojure-mode-hook ()
     (clj-refactor-mode 1)
-    (yas-minor-mode 1)              ; for adding require/use/import statements
+    (yas-minor-mode 1)                ; for adding require/use/import statements
     ;; This choice of keybinding leaves cider-macroexpand-1 unbound
     ;; that's ok 'cuz we have macroexpand-mode anyways
     (cljr-add-keybindings-with-prefix "C-c C-m"))
 
   (add-hook 'clojure-mode-hook #'+my-clojure-mode-hook))
-;;; C++/C#/C Programming 
+;;; C++/C#/C Programming
+;; for c-mode, to get that workflow flowing
 (defun +compile-and-execute-in-vterm ()
   (interactive)
   (+execute-in-vterm
    "cd ~/stuff/compro/healtermon/sudoku-ncurses/ && make && ./sudoku-ncurses"))
-(once '(:hooks c-mode-common-hook)
-  (bind-keys :map c-mode-base-map ("C-c C-c" . +compile-and-execute-in-vterm)) ; for c-mode, to get that workflow flowing. But c-mode-base-map is only defined after cc-mode is loaded(only after visiting the c file), so putting it in the common-c-mode-hook works
-  )
+
+
+(add-hook 'c-mode-common-hook
+          (lambda () ;; But c-mode-base-map is only defined after cc-mode is loaded(only after visiting the c file), so putting it in the common-c-mode-hook works
+            (define-key 'c-mode-base-map "C-c C-c" #'+compile-and-execute-in-vterm)))
 
 (add-hook 'c-mode-hook (lambda () (c-toggle-comment-style -1))) ; use // instead of /* */ so ts-fold can fold it better)
 
-(use-package cmake-mode ;; for cmake files
-  :defer)
+(leaf cmake-mode
+  :doc "for cmake files"
+  :straight t)
 
-(use-package csharp-mode ;; C# syntax highlighting
-  :defer)
+(leaf csharp-mode
+  :doc "C# syntax highlighting"
+  :straight t)
 
-(use-package modern-cpp-font-lock ;; C++ syntax highlighting
-  :hook (c++-mode . modern-c++-font-lock-mode))
-(use-package disaster ;; Disassemble C, C++ or Fortran code under cursor
-  :defer)
-
-(use-package eat ;; Emulate-A-Terminal
-  :straight ( :type git
-              :host codeberg
-              :repo "akib/emacs-eat"
-              :files ("*.el" ("term" "term/*.el") "*.texi"
-                      "*.ti" ("terminfo/e" "terminfo/e/*")
-                      ("terminfo/65" "terminfo/65/*")
-                      ("integration" "integration/*")
-                      (:exclude ".dir-locals.el" "*-tests.el")))
+(leaf modern-cpp-font-lock ;; C++ syntax highlighting
+  :straight t
+  :hook (c++-mode-hook . modern-c++-font-lock-mode))
+(leaf disaster ;; Disassemble C, C++ or Fortran code under cursor
+  :straight t)
+;;; The Rest
+(leaf eat
+  :doc "Emulate-A-Terminal"
+  :straight (eat :type git
+                 :host codeberg
+                 :repo "akib/emacs-eat"
+                 :files ("*.el" ("term" "term/*.el") "*.texi"
+                         "*.ti" ("terminfo/e" "terminfo/e/*")
+                         ("terminfo/65" "terminfo/65/*")
+                         ("integration" "integration/*")
+                         (:exclude ".dir-locals.el" "*-tests.el")))
   :defer
   ;; :hook ((eshell-load . eat-eshell-mode)
   ;;        ;; (eshell-load . eat-eshell-visual-command-mode)
   ;;        )
-  :init
+  :defer-config
   (setq eat-kill-buffer-on-exit t))
 
-(use-package outli
-  :straight (:type git :host github :repo "jdtsmith/outli") 
-  ;; :after lispy ; only if you use lispy; it also sets speed keys on headers!
-  :bind (:map outli-mode-map ; convenience key to get back to containing heading
-	            ("C-c C-p" . (lambda () (interactive) (outline-back-to-heading))))
-  :hook ((prog-mode text-mode) . outli-mode))
+(leaf outli
+  :doc "outline fontification and nesting, org-style tabbing on them, plus more commands, see outli speed-command-help "
+  :straight (outli :type git :host github :repo "jdtsmith/outli") 
+  :bind (outli-mode-map     ; convenience key to get back to containing heading
+         :package outli
+	       ("C-c C-p" . (lambda () (interactive) (outline-back-to-heading))))
+  :hook ((prog-mode-hook text-mode-hook) . outli-mode))
 
-(use-package lispy
+(leaf lispy
   ;; keybindings to remember: "number (", wrap in () and go from |() to (| (), pretty good!
   ;; learning this is like a WTF HOW DO I DO THIS BASIC THING till eureka and you see how it all comes together. Watch the demo vids to see how it's done, it helps a LOT.
-  :hook ((emacs-lisp-mode
-          eval-expression-minibuffer-setup
-          lisp-interaction-mode
-          ielm-mode
-          lisp-mode
-          scheme-mode
-          clojure-mode
-          cider-repl-mode) . lispy-mode)
-  :bind (:map lispy-mode-map
-              (("C-<return>")
-               ("M-<return>")
-               ("M-RET")
-               ("M-.")
-               ("M-,")))
+  :doc "holy shit a genius parens editing mode; Smart, short keybind lisp editing"
+  :straight t
+  :hook ((emacs-lisp-mode-hook
+          eval-expression-minibuffer-setup-hook
+          lisp-interaction-mode-hook
+          ielm-mode-hook
+          lisp-mode-hook
+          scheme-mode-hook
+          clojure-mode-hook
+          cider-repl-mode-hook) . lispy-mode)
+  :bind ((lispy-mode-map
+          :package lispy
+          ("C-<return>")
+          ("M-<return>")
+          ("M-RET")
+          ("M-.")
+          ;; ("<SPC>" . xah-insert-space-before) ; ugh what a headache
+          ("M-,"))
+         ;; (lispy-mode-map-special
+         ;;  :package lispy
+         ;;  ("<SPC>" . xah-insert-space-before))
+         )
   :config
   (setq lispy-compat '(edebug ;; adds overhead so careful! don't need to setq-local 'cuz I use these 3 all the time anyways (except edebug)
                        ;; magit-blame-mode
@@ -2875,9 +3064,11 @@ TODAYP is t when the current agenda view is on today."
   ) 
 
 (use-package sotlisp ;; abbrev way of typing elisp TODO: figure out M-RET keybinding clashes
+  :straight t
   :hook (emacs-lisp-mode . speed-of-thought-mode))
 
 (use-package erefactor                  ;; elisp refactoring, how to use?
+  :straight t
   :defer
   ;; :config
   ;; ;; highlight local variables
@@ -2887,7 +3078,7 @@ TODAYP is t when the current agenda view is on today."
 
 (defun slime-eval-last-expression-eros ()
   (interactive)
-  (destructuring-bind (output value)
+  (cl-destructuring-bind (output value)
       (slime-eval `(swank:eval-and-grab-output ,(slime-last-expression)))
     (eros--make-result-overlay (concat output value)
       :where (point)
@@ -2895,35 +3086,32 @@ TODAYP is t when the current agenda view is on today."
 
 (defun sly-eval-last-expression-eros ()
   (interactive)
-  (destructuring-bind (output value)
+  (cl-destructuring-bind (output value)
       (sly-eval `(swank:eval-and-grab-output ,(slime-last-expression)))
     (eros--make-result-overlay (concat output value)
       :where (point)
       :duration eros-eval-result-duration)))
 
 (use-package yasnippet-snippets
+  :straight t
   :after yasnippet)
 (use-package common-lisp-snippets
+  :straight t
   :defer
   :after (yasnippet sly))
-(use-package haskell-snippets
-  :after (yasnippet haskell-mode)
-  :defer)
-
-
 (leaf haskell-snippets
   :straight t
-  :after (yasnippet haskell-mode)
-  :init
-  (inittt)
-  :config
-  (config)
-  :defer-config
-  (defer-config)
-  )
+  :after haskell-mode)
 
+
+(leaf *leaf-buds ;; next it's flower, then fruits?
+  :doc "fun leaf packages"
+  :config)
+(leaf leaf-convert
+  :doc "converts to leaf any sexp passed to it, doesn't work perfectly when converting bind-keys->leaf-keys"
+  :straight t)
 (leaf leaf-tree
   :straight t
-  :custom ((imenu-list-size . 30)
-           (imenu-list-position . 'left)))
-
+  :defer-config
+  (setq imenu-list-size 30
+        imenu-list-position 'left))
