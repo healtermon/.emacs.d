@@ -28,8 +28,8 @@
  custom-file (concat user-emacs-directory "custom.el") ; Place all "custom" code in a temporary file
  use-short-answers t                                   ; y/n for yes/no
  load-prefer-newer t
- native-comp-async-report-warnings-errors 'silent ; I don't think I can use these
- native-comp-async-jobs-number     10
+ ;; native-comp-async-report-warnings-errors 'silent ; I don't think I can use these
+ ;; native-comp-async-jobs-number     10
  )
 
 ;; Skipping a bunch of regular expression searching in the file-name-handler-alist should improve start time.
@@ -53,14 +53,14 @@
            gc-cons-threshold (* 128 1024 1024) ; increase garbage collection limit to 100MiB, default is 0.8MB, measured in bytes
            gc-cons-percentage 0.6 ; Portion of heap used for allocation.  Defaults to 0.1.
            )
-     ;; (message "gc-cons-threshold & file-name-handler-alist restored")
+     (message "gc-cons-threshold & file-name-handler-alist restored, Emacs ready in %s with %d garbage collections."
+              (format "%.2f seconds"
+                      (float-time
+                       (time-subtract after-init-time before-init-time)))
+              gcs-done)
      (when (boundp 'after-focus-change-function)
-       (add-function :after after-focus-change-function #'+gc-after-focus-change) ;; I can't get it to work!!!
-       ))))
+       (add-function :after after-focus-change-function #'+gc-after-focus-change)))))
 (add-hook 'emacs-startup-hook #'+reset-early-init-values)
-
-(defun +system-name? (name-string)
-  (string-equal system-name name-string))
 
 ;; should they be here? idk. Why did alexlugit put them in early-init?
 (defvar +font-size 141)
@@ -68,7 +68,6 @@
 (defvar +fixed-font "mononoki Nerd Font") ; for info
 (defvar +variable-font "Sarasa Mono SC")  ; variable-pitch font
 (defvar +CJK-font "LXGW WenKai Mono") ; Chinese, Japanese, Korean characters
-
 
 ;; Local Variables:
 ;; no-byte-compile: t
