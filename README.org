@@ -1,5 +1,7 @@
 * My Emacs Config
 Welcome to my emacs setup! Sorry it's not literate, and always in a mess, but hopefully it helps!
+package manager: straight
+configuration macros: leaf use-package once
 
 ** What each file is for
 - early-init.el is mainly to disable garbage collection during startup so that the init loads faster 
