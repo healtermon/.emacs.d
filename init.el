@@ -24,7 +24,6 @@
 ;; - mixed-pitch
 ;; - ace-link
 ;; - ledger-mode & flycheck-ledger
-;; - consult-flycheck & flycheck
 ;; - dwim-shell-command
 ;; - org-bookmark-heading
 ;; - org-visibility
@@ -71,7 +70,6 @@
 ;; - log-interaction-mode for presenting
 ;; - centaur tabs, nice-looking tabs
 ;; - zotra, zotero translators without using zotera client
-;; - sotlisp, speed elisp function typing and editing style
 ;; - blackout, an easier delight/diminish/dim, for changing both major and minor mode appearance in modeline
 ;; - GCMH, the Garbage Collector Magic Hack, changes GC threshold based on user activity
 
@@ -370,6 +368,7 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
 
 (leaf esup
   :straight t
+  :doc "Emacs Start UP"
   :config
   ;; Work around a bug where esup tries to step into the byte-compiled
   ;; version of `cl-lib', and fails horribly.
@@ -392,19 +391,19 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
   (defun +xfk-command-mode-n ()
     "in dirvish-mode, does dirvish-narrow, otherwise isearch."
     (interactive)
-    (cond ((string-equal major-mode "dirvish-mode") (dirvish-narrow))
+    (cond ((and (string-equal major-mode "dired-mode")
+                (bound-and-true-p dirvish-override-dired-mode))
+           (dirvish-narrow))
           (t (isearch-forward))))
   (defun +xfk-command-mode-j ()
     "in dirvish-mode, does dired-up-directory, otherwise backwards-char"
     (interactive)
     (cond ((string-equal major-mode "dired-mode")   (dired-up-directory))
-          ((string-equal major-mode "dirvish-mode") (dired-up-directory))
           (t (backward-char))))
   (defun +xfk-command-mode-l ()
     "in dirvish-mode, does dired-up-directory, otherwise forwards-char"
     (interactive)
     (cond ((string-equal major-mode "dired-mode")   (dired-find-file))
-          ((string-equal major-mode "dirvish-mode") (dired-find-file))
           (t (forward-char))))
   (defun +xfk-command-mode-g ()
     "in dired-mode, does dired-up-directory, otherwise forwards-char"
@@ -428,7 +427,7 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
    ("8" . er/expand-region)
    ("<SPC> 1 i" . crux-find-user-init-file)
    ("<SPC> 1 I" . (lambda () (interactive) (find-file-other-window +user-early-init-file)))
-   ("<SPC> 1 t" . (lambda () (interactive) (find-file-other-window (concat +stuff-dir "notes/zk/20230105103905.org"))))
+   ("<SPC> 1 t" . (lambda () (interactive) (find-file-other-window (concat +org-roam-dir "20230105103905.org"))))
    ("<SPC> 1 f" . (lambda () (interactive) (find-file-other-window (concat +emacs-dir "lisp/funcs.el"))))
    ("<SPC> 1 c" . (lambda () (interactive) (require 'calfw) (cfw:open-calendar)))
    ("<SPC> 1 h" . (lambda () (interactive) (dired "~/stuff/compro/healtermon/"))))
@@ -441,11 +440,14 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
 (leaf puni
   :straight t
   :doc "leverages built-in features for structural editing, warning: not all-encompassing"
-  :hook prog-mode-hook eval-expression-minibuffer-setup-hook
-  :bind (puni-mode-map
-         :package puni ;; The difference between leaf-keys and bind-keys is, leaf-keys accepts a :package pkg1 pkg2 pk3... which chains `eval-after-load's for those packages before loading keybindings to the maps, while bind-keys will skip the `eval-after-load's. Henceforth if you want it to load immediately while deferring loading of the current package you give it some other already-loaded package, which is definitely leaf... Otherwise it can be nice to create complex criteria to load your keymaps, like here you can ":package (prog-mode whatever-loads-minibuffer)"
-         ("C-<right>" . puni-slurp-forward)
-         ("C-<left>" . puni-barf-forward)))
+  :hook
+  prog-mode-hook
+  eval-expression-minibuffer-setup-hook
+  :bind
+  (puni-mode-map
+   :package puni ;; The difference between leaf-keys and bind-keys is, leaf-keys accepts a :package pkg1 pkg2 pk3... which chains `eval-after-load's for those packages before loading keybindings to the maps, while bind-keys will skip the `eval-after-load's. Henceforth if you want it to load immediately while deferring loading of the current package you give it some other already-loaded package, which is definitely leaf... Otherwise it can be nice to create complex criteria to load your keymaps, like here you can ":package (prog-mode whatever-loads-minibuffer)"
+   ("C-<right>" . puni-slurp-forward)
+   ("C-<left>" . puni-barf-forward)))
 (leaf expand-region ; TODO: test against puni-expand-region and see which I like more, then rebind it in xah-fly-command-map
   :doc "a better expand-region than xah-fly-keys'"
   :straight t)
@@ -485,10 +487,11 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
                         ;; magit-blame-mode
                         cider
                         macrostep))
-  )
+  (setq lispy-close-quotes-at-end-p t))
 
-(leaf sotlisp ;; abbrev way of typing elisp TODO: figure out M-RET keybinding clashes
+(leaf sotlisp ;; TODO: figure out M-RET keybinding clashes
   :straight t
+  :doc "Speed-Of-Thought, abbrev way of typing elisp"
   :hook (emacs-lisp-mode . speed-of-thought-mode))
 
 
@@ -505,9 +508,8 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
   (display-time-mode t))
 
 (leaf recentf
-  :doc "recent files browsing feature"
   :straight (recentf :type built-in)
-  
+  :doc "recent files browsing feature"
   :init
   ;; (once '(:before after-find-file) ;; 0.05s saved
   ;;   (setq recentf-max-saved-items 10000
@@ -516,15 +518,15 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
   :config
   (setq recentf-max-saved-items 10000
         recentf-max-menu-items 10000)
-  (recentf-mode 1) ;; 0.05s lag is worth it
+  :global-minor-mode recentf-mode ;; 0.05s lag is worth it
   )
 
 (leaf saveplace
-  :doc "Remember and restore the last cursor location of opened files. 10/10 package."
   :straight (saveplace :type built-in)
+  :doc "Remember and restore the last cursor location of opened files. 10/10 package."
   :init
   (setq save-place-forget-unreadable-files t)
-  (save-place-mode 1)                   ;; the one-time 0.05s lag is worth it
+  :global-minor-mode save-place-mode ;; the one-time 0.05s lag is worth it
   )
 
 (leaf *history-setting
@@ -532,13 +534,12 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
   (vertico-sort-history-length-alpha . 10000)
   (history-delete-duplicates . t))
 (leaf savehist
-  :doc "save minibuffer command history"
   :straight (savehist :type built-in)
+  :doc "save minibuffer command history"
   :require t
   :setq
   (savehist-save-minibuffer-history . t)
-  :config
-  (savehist-mode 1))
+  :global-minor-mode savehist-mode)
 
 (leaf vertico
   :straight (vertico :files (:defaults "extensions/*"))
@@ -592,8 +593,7 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
   :after vertico 
   :setq
   (marginalia-max-relative-age . 0)
-  :config
-  (marginalia-mode 1))
+  :global-minor-mode marginalia-mode)
 
 (leaf consult ;; provides _good shit_ versions of common commands and more
   :straight t
@@ -686,10 +686,10 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
 
 (leaf embark
   :straight t
-  
-  :bind (("C-." . embark-act)           ; like a right-click
-         ("M-." . embark-dwim)
-         ("C-h B" . embark-bindings))   ; like a left-click
+  :bind
+  ("C-." . embark-act)                  ; like a right-click
+  ("M-." . embark-dwim)
+  ("C-h B" . embark-bindings)           ; like a left-click
   
   :defer-config
   ;; Optionally replace the key help with a completing-read interface
@@ -708,12 +708,12 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
                  nil
                  (window-parameters (mode-line-format . none))))
   )
-(use-package embark-consult
+(leaf embark-consult
   :straight t
   :after (embark consult)
-  :demand t        ; only necessary if you have the hook below
-  ;; if you want to have consult previews as you move around an
-  ;; auto-updating embark collect buffer
+  ;; :demand t        ; only necessary if you have the hook below
+  ;; ;; if you want to have consult previews as you move around an
+  ;; ;; auto-updating embark collect buffer
   :hook (embark-collect-mode . consult-preview-at-point-mode))
 
 (leaf wgrep
@@ -1020,10 +1020,67 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
 (leaf dired-x
   :straight (dired-x :type built-in)
   :after dired
-  :defer-config
-  (setq dired-omit-files (concat dired-omit-files "\\|^\\..*$")))
+  :hook
+  (dired-mode-hook . dired-omit-mode)
+  :config
+  ;; matches an empty line, or one or more dots.
+  (setq dired-omit-files (concat dired-omit-files (rx (or "" (seq line-start "." (zero-or-more ".") line-end)))))
+  ;; ;; alternative to above; Make dired-omit-mode hide all "dotfiles"
+  ;; (setq dired-omit-files
+  ;;       (concat dired-omit-files (rx (or "" (seq line-start "." (zero-or-more not-newline) line-end)))))
+  )
+
+(leaf dirvish                           ;; I don't know why this isn't bugged out now.
+  :if +apexless
+  :straight t
+  :bind                ; Bind `dirvish|dirvish-side|dirvish-dwim' as you see fit
+  (("C-c f" . dirvish-fd)
+   (dirvish-mode-map                    ; Dirvish inherits `dired-mode-map'
+    ("a"   . dirvish-quick-access)
+    ("f"   . dirvish-file-info-menu)
+    ("y"   . dirvish-yank-menu)
+    ("N"   . dirvish-narrow)
+    ("^"   . dirvish-history-last)
+    ("h"   . dirvish-history-jump)      ; remapped `describe-mode'
+    ("s"   . dirvish-quicksort)         ; remapped `dired-sort-toggle-or-edit'
+    ("v"   . dirvish-vc-menu)           ; remapped `dired-view-file'
+    ("TAB" . dirvish-subtree-toggle)
+    ("M-f" . dirvish-history-go-forward)
+    ("M-b" . dirvish-history-go-backward)
+    ("M-l" . dirvish-ls-switches-menu)
+    ("M-m" . dirvish-mark-menu)
+    ("M-t" . dirvish-layout-toggle)
+    ("M-s" . dirvish-setup-menu)
+    ("M-e" . dirvish-emerge-menu)
+    ("M-j" . dirvish-fd-jump)
+    ([mouse-1] . dirvish-subtree-toggle-or-open)
+    ([mouse-2] . dired-mouse-find-file-other-window)
+    ([mouse-3] . dired-mouse-find-file)))
+  :init
+  (once '(:hooks pre-command-hook)
+    (dirvish-override-dired-mode))
+  :setq 
+  (dirvish-hide-details . t) ;; hide how dired shows the details on left of file/folder names
+  (dirvish-reuse-session . nil)
+  (dirvish-attributes . '(all-the-icons file-size collapse subtree-state vc-state git-msg))
+  (dired-listing-switches . "-l --almost-all --human-readable --time-style=long-iso --group-directories-first --no-group")
+  (dirvish-preview-dispatchers . (cl-substitute 'pdf-preface 'pdf dirvish-preview-dispatchers)) ;requires pdftoppm executable
+  ;; Height
+  ;; '(25 . 35) means
+  ;;   - height in single window sessions is 25
+  ;;   - height in full-frame sessions is 35
+  (dirvish-header-line-height . '(25 . 35))
+  (dirvish-mode-line-height . 15) ; 25 is shorthand for '(25 . 25), why isn't this option working?
+  (dirvish-mode-line-format . '( :left (sort file-time " " file-size symlink)
+                                 :right (omit yank index)))
+  (dirvish-time-format-string . "%Y/%m/%d-%R")
+  :defer-config  
+  (dirvish-peek-mode) ;; shows preview minibuffer when scrolling through find-file minibuffer
+  (dirvish-side-follow-mode)
+  )
+
 (leaf dired-aux
-  :straight (dired-aux :type built-in)
+  :straight (dired-aux :type built-in) 
   :after dired)
 (leaf wdired
   :straight (wdired :type built-in)
@@ -1062,20 +1119,23 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
          (magit-pre-refresh-hook . diff-hl-magit-pre-refresh)
          (magit-post-refresh-hook . diff-hl-magit-post-refresh)))
 ;;; Templates/snippets 
-(use-package tempel
+(leaf tempel
   :straight t
+  
+  :bind
+  ("M-+" . tempel-complete) ;; Alternative tempel-expand
+  ("M-*" . tempel-insert)
+  (tempel-map
+   ("M-]" . tempel-next)
+   ("M-[" . tempel-previous))
+  :hook
+  ((prog-mode-hook
+    text-mode-hook) . tempel-setup-capf)
+  :init
   ;; Require trigger prefix before template name when completing.
   ;; :custom
-  ;; (tempel-trigger-prefix "<")
-
-  :bind (("M-+" . tempel-complete) ;; Alternative tempel-expand
-         ("M-*" . tempel-insert)
-         (:map tempel-map
-               ("M-]" . tempel-next)
-               ("M-[" . tempel-previous)))
-  :hook ((prog-mode text-mode) . tempel-setup-capf)
-
-  :init
+  (setq tempel-trigger-prefix "<")
+  
   (defun tempel-setup-capf ()
     ;; Add the Tempel Capf to `completion-at-point-functions'.
     ;; `tempel-expand' only triggers on exact matches. Alternatively use
@@ -1085,14 +1145,13 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
     ;; `tempel-expand' *before* the main programming mode Capf, such
     ;; that it will be tried first.
     (setq-local completion-at-point-functions
-                (cons #'tempel-expand
+                (cons #'tempel-complete
                       completion-at-point-functions)))
 
   ;; Optionally make the Tempel templates available to Abbrev,
   ;; either locally or globally. `expand-abbrev' is bound to C-x '.
   ;; (add-hook 'prog-mode-hook #'tempel-abbrev-mode)
   ;; (global-tempel-abbrev-mode)
-
   )
 
 
@@ -1362,9 +1421,10 @@ Notes:
 
 (use-package cdlatex ;; fast LaTeX math input
   :straight t
-  :hook (((latex-mode LaTeX-mode) . turn-on-cdlatex)
-         ;; (org-mode . turn-on-org-cdlatex)
-         )
+  :hook
+  ((latex-mode
+    LaTeX-mode) . turn-on-cdlatex)
+  ;; (org-mode . turn-on-org-cdlatex)
   )
 ;;; Citations 
 ;; HOW TO USE: 
@@ -1431,34 +1491,32 @@ Notes:
     "Face for having icons' color be identical to the theme
   background when \"not shown\".")
 
+  (leaf citar-org
+    ;; :straight t ;; it's in citar's repo
+    :after org citar
+    :require t
+    :init
+    ;; makes org-cite use citar's nicer cite function, as org-cite's is very basic
+    (setq org-cite-insert-processor 'citar)
+    (setq org-cite-follow-processor 'citar)
+    (setq org-cite-activate-processor 'citar))
   :config
   (setq citar-bibliography `(,(expand-file-name "~/stuff/notes/bib/references.bib")))
   (setq citar-notes-paths (list org-roam-directory))
   ;; (setq citar-open-note-function 'orb-citar-edit-note) ; if you use org-roam-bibtex
   )
-;; makes org-cite use citar's nicer cite function, as org-cite's is very basic
-(use-package citar-org
-  :straight t
-  :after oc
-  :no-require
-  :config
-  (setq org-cite-insert-processor 'citar)
-  (setq org-cite-follow-processor 'citar)
-  (setq org-cite-activate-processor 'citar))
+
 ;; allows you to find all citations of a reference from the note of the reference. It's in infant stage, so might switch to org-roam-bibtex then back. Problem is org-roam-bibtex needs helm-bibtex...
-(use-package citar-org-roam
+(leaf citar-org-roam
   :straight t
   :after (citar org-roam)
-  :no-require
-  :config
-  (citar-org-roam-mode))
+  :global-minor-mode citar-org-roam-mode)
 
-(use-package citar-embark
+(leaf citar-embark
   :straight t
   :after (citar embark)
-  :no-require
-  :config
-  (citar-embark-mode)
+  :global-minor-mode citar-embark-mode
+  :defer-config
   (setq citar-at-point-function 'embark-act) ; changes citar-dwim to embark-act
   )
 
@@ -1542,6 +1600,14 @@ from https://www.n16f.net/blog/clearing-the-eshell-buffer/"
   :after esh-mode
   :defer-config
   (setq eshell-prompt-function 'epe-theme-multiline-with-status))
+
+(leaf eshell-up
+  :straight t
+  :after esh-mode
+  :require t
+  :setq
+  ;; (eshell-up-ignore-case . nil) ;; make eshell-up searches case sensitive:
+  (eshell-up-print-parent-dir . t))
 
 (leaf eshell-syntax-highlighting
   :straight t
@@ -1679,7 +1745,7 @@ from https://www.n16f.net/blog/clearing-the-eshell-buffer/"
   ;; (corfu-quit-no-match nil)      ;; Never quit, even if there is no match
   ;; (corfu-preview-current nil)    ;; Disable current candidate preview
   ;; (setq corfu-preselect 'valid) ;; Preselect the prompt
-  ;; (corfu-on-exact-match nil)     ;; Configure handling of exact matches
+  ;; (corfu-on-exact-match . nil)     ;; Configure handling of exact matches
   ;; (corfu-echo-documentation . nil) ;; Disable documentation in the echo area
 
   :defer-config
@@ -1881,7 +1947,8 @@ variable `project-local-identifier' to be considered a project."
   (setq eldoc-echo-area-use-multiline-p nil) ; fucking stop using multiline echo area for your documentation, it's a screen-wide annoyance
   )
 (leaf flymake
-  :straight t 
+  :straight t
+  "Linter. I don't use flycheck 'cuz I haven't found a need to, and some say it's slower than current flymake on large files."
   :bind ((flymake-mode-map
           ("C-#" . flymake-goto-next-error)
           ("C-$" . flymake-goto-prev-error))))
@@ -2041,12 +2108,11 @@ variable `project-local-identifier' to be considered a project."
   :straight t
   :doc "matrix client and hence also supports IRC")
 
-(use-package circe ; IRC Client; takes the lessons learnt from ERC and is more easily extensible, and has nicer documentation IMO. Also since it's simpler it's easier to undertand, though also very noob-unfriendly from experience (see below)
+(leaf circe ; IRC Client; takes the lessons learnt from ERC and is more easily extensible, and has nicer documentation IMO. Also since it's simpler it's easier to undertand, though also very noob-unfriendly from experience (see below)
   ;; Q: honestly I still don't know how to login without using circe-network-options, unlike in ERC where they prompt you, circe doesn't seem to let you msg ppl?
   ;; A: well it's actually 'cuz "/msg NickServ IDENTIFY user pass" opens in another buffer, which if you didn't notice and typed the wrong password, makes it seem like nothing happened... So it is a beautiful client after all, separating all the chats :)
   :straight t
-  :defer
-  :config
+  :defer-config
   (setq circe-network-options
         `(("Libera Chat"
            :tls t
@@ -2086,13 +2152,11 @@ variable `project-local-identifier' to be considered a project."
 
   (setq lui-track-bar-behavior 'before-switch-to-buffer)
   (enable-lui-track-bar)
-
   )
 
-(use-package erc
+(leaf erc
   :straight (erc :type built-in)
-  :defer
-  :config
+  :defer-config
   (setq erc-nick "healtermon")
   (setq erc-fill-column 90
         erc-fill-function 'erc-fill-static
@@ -2100,15 +2164,15 @@ variable `project-local-identifier' to be considered a project."
   (setq erc-track-enable-keybindings t) ; enable C-c C-SPC to go to new messages
 
   )
-(use-package erc-hl-nicks
+(leaf erc-hl-nicks
   :straight t
   :after erc
-  :config
+  :defer-config
   (add-to-list 'erc-modules 'hl-nicks))
-(use-package erc-image
+(leaf erc-image
   :straight t
   :after erc
-  :config
+  :defer-config
   (setq erc-image-inline-rescale 300)
   (add-to-list 'erc-modules 'image))
 
@@ -2121,14 +2185,15 @@ variable `project-local-identifier' to be considered a project."
   ;; has to be set before calling telega command, can be after loading telega.el
   (telega-server-libs-prefix . "/opt/homebrew/Cellar/tdlib/HEAD-d581e04/"))
 
-(use-package google-this
+(leaf google-this
+  :straight t
   :commands (google-this-translate-query-or-region) ;; there's no autoload for just this 1 command, but there is for the 15 other commands. Why?
-  :defer)
-(use-package langtool
+  )
+(leaf langtool
   ;; from https://sqrtminusone.xyz/configs/emacs/#languagetool
   ;; LanguageTool is a great offline spell checker. For some reason, the download link is nowhere to be found on the home page, so it is listed below
   ;; https://dev.languagetool.org/http-server
-  :defer
+  :straight t
   :init
   (setq langtool-language-tool-server-jar  "/Users/s/stuff/compro/LanguageTool/LanguageTool-5.9/languagetool-server.jar")
   (setq langtool-default-language "en-US")
@@ -2287,6 +2352,15 @@ This function is added to the `standard-themes-post-load-hook'."
 (leaf minions
   :straight t
   :hook after-init-hook)
+
+(leaf modeline
+  :init
+  ;; WARNING: THIS CAUSES MODELINE TO FAIL IF PUT AFTER INIT, IDK WHY, MAYBE 'cUZ OF THEME LOADING AFTER after-init-hook
+  (custom-set-faces
+   '(mode-line ((t (:height 0.8))))
+   ;; '(mode-line-active ((t ( :height 0.8)))) ; For 29+
+   ;; '(mode-line-inactive ((t ( :height 0.8))))
+   ))
 
 (leaf doom-modeline
   :straight t
@@ -2611,12 +2685,11 @@ This function is added to the `standard-themes-post-load-hook'."
 ;;   :after eyebrowse
 ;;   :config (eyebrowse-restore-mode))
 
-(use-package org-gtasks ; sync google tasks, probably won't use it as google tasks don't support scheduling of tasks, only deadline
-  :defer
-  :straight (:type git :host github :repo "JulienMasson/org-gtasks")
-  :config
+(leaf org-gtasks ; sync google tasks, probably won't use it as google tasks don't support scheduling of tasks, only deadline
+  :straight (org-gtasks :type git :host github :repo "JulienMasson/org-gtasks")
+  :defer-config
   (org-gtasks-register-account :name "S L"
-                               :directory "~/stuff/notes/tasks/"
+                               :directory +healtermon-gtasks-file
                                :client-id +gclient-id
                                :client-secret +gclient-secret))
 
@@ -2860,9 +2933,6 @@ This function is added to the `standard-themes-post-load-hook'."
         org-gcal-file-alist `(("healtermon@gmail.com" .  ,+healtermon-gcal-file)
                               ;; ("another-mail@gmail.com" .  "~/more-mail.org")
                               )))
-;; calendar id:healtermon@gmail.com
-;; public URL to calendar:https://calendar.google.com/calendar/embed?src=healtermon%40gmail.com&ctz=Asia%2FSingapore
-;; public address in iCal format:https://calendar.google.com/calendar/ical/healtermon%40gmail.com/public/basic.ics
 
 (leaf calfw ;; calendar framework
   :straight t
@@ -3127,7 +3197,7 @@ TODAYP is t when the current agenda view is on today."
                          ("integration" "integration/*")
                          (:exclude ".dir-locals.el" "*-tests.el")))
   :hook
-  ;; (eshell-load . eat-eshell-mode)
+  (eshell-load . eat-eshell-mode)
   ;; (eshell-load . eat-eshell-visual-command-mode)
   :defer-config
   (setq eat-kill-buffer-on-exit t))
@@ -3183,71 +3253,12 @@ TODAYP is t when the current agenda view is on today."
 
 (leaf fennel-mode
   :straight t
+  
+  (leaf antifennel
+    :doc "compile lua code to equivalent fennel code and view in buffer! Requires installed antifennel"
+    :hook
+    lua-mode-hook)
   )
-(leaf eshell-up
-  :straight t
-  :after esh-mode
-  :require t
-  :setq
-  ;; (eshell-up-ignore-case . nil) ;; make eshell-up searches case sensitive:
-  (eshell-up-print-parent-dir . t))
 
 
 
-(leaf modeline
-  :init
-  ;; WARNING: THIS CAUSES MODELINE TO FAIL IF PUT AFTER INIT, IDK WHY
-  (custom-set-faces
-   '(mode-line ((t (:height 0.8))))
-   ;; '(mode-line-active ((t ( :height 0.8)))) ; For 29+
-   ;; '(mode-line-inactive ((t ( :height 0.8))))
-   ))
-
-(leaf dirvish
-  :if +apexless
-  :straight t
-  :bind                ; Bind `dirvish|dirvish-side|dirvish-dwim' as you see fit
-  (("C-c f" . dirvish-fd)
-   (dirvish-mode-map                    ; Dirvish inherits `dired-mode-map'
-    ("a"   . dirvish-quick-access)
-    ("f"   . dirvish-file-info-menu)
-    ("y"   . dirvish-yank-menu)
-    ("N"   . dirvish-narrow)
-    ("^"   . dirvish-history-last)
-    ("h"   . dirvish-history-jump)      ; remapped `describe-mode'
-    ("s"   . dirvish-quicksort)         ; remapped `dired-sort-toggle-or-edit'
-    ("v"   . dirvish-vc-menu)           ; remapped `dired-view-file'
-    ("TAB" . dirvish-subtree-toggle)
-    ("M-f" . dirvish-history-go-forward)
-    ("M-b" . dirvish-history-go-backward)
-    ("M-l" . dirvish-ls-switches-menu)
-    ("M-m" . dirvish-mark-menu)
-    ("M-t" . dirvish-layout-toggle)
-    ("M-s" . dirvish-setup-menu)
-    ("M-e" . dirvish-emerge-menu)
-    ("M-j" . dirvish-fd-jump)
-    ([mouse-1] . dirvish-subtree-toggle-or-open)
-    ([mouse-2] . dired-mouse-find-file-other-window)
-    ([mouse-3] . dired-mouse-find-file)))
-  :init
-  (once '(:hooks pre-command-hook)
-    (dirvish-override-dired-mode))
-  :setq 
-  (dirvish-hide-details . t) ;; hide how dired shows the details on left of file/folder names
-  (dirvish-reuse-session . nil)
-  (dirvish-attributes . '(all-the-icons file-size collapse subtree-state vc-state git-msg))
-  (dired-listing-switches . "-l --almost-all --human-readable --time-style=long-iso --group-directories-first --no-group")
-  (dirvish-preview-dispatchers . (cl-substitute 'pdf-preface 'pdf dirvish-preview-dispatchers)) ;requires pdftoppm executable
-  ;; Height
-  ;; '(25 . 35) means
-  ;;   - height in single window sessions is 25
-  ;;   - height in full-frame sessions is 35
-  (dirvish-header-line-height . '(25 . 35))
-  (dirvish-mode-line-height . 15) ; 25 is shorthand for '(25 . 25), why isn't this option working?
-  (dirvish-mode-line-format . '( :left (sort file-time " " file-size symlink)
-                                 :right (omit yank index)))
-  (dirvish-time-format-string . "%Y/%m/%d-%R")
-  :defer-config  
-  (dirvish-peek-mode) ;; shows preview minibuffer when scrolling through find-file minibuffer
-  (dirvish-side-follow-mode)
-  )
