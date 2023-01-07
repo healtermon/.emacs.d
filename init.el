@@ -76,12 +76,12 @@
 ;;;;; Cool packages that I want to install later on
 ;; - persp-mode, workspace manager
 ;; - dumb-jump, for when u don't have lsp and want to jump to definitions
-
+;; - undo-propose, stage undos in a separate buffer
 ;;; Intro to Config
 ;; This config is sorted in least to most likely to break... as I test stuff with my init.el and restart often.
 ;; I use hs-minor-mode(code-folding) and parentheses and outli-mode to sort and view this config, so if you don't use them, good luck!
 ;; I use emacs-mac, so there's mac-win.el being run before startup to help me with configuration too!
-"end Notes/stop folding"
+nil
 ;;; Function & Variable Definitions
 (setq +init-file-debug t)
 (setq debug-on-error nil)
@@ -100,7 +100,7 @@
 ;; (setq force-load-messages t)
 
 (defun +system-name? (name-string)
-  (string-equal system-name name-string))
+  (string= system-name name-string))
 
 ;; This file supports a few computers
 (defvar +apexless (and (eq system-type 'darwin)) "Whether Emacs is running on my macbook pro 14-inch m1 pro") ;; system-name Apexless/Apexless.local/???
@@ -352,11 +352,17 @@ Comparison to use-package (that are not on github)
   :doc "more configuration macros, yay!")
 
 (leaf use-package
+  :straight t
   :doc "macros to neaten configuration. I keep it around to slowly convert my init file and try others' code blocks.
 If you wanna expand use-package macros, if there are no errors in the config, you can set use-package-expand-minimally to t to get a much more readable expansion"
-  :straight t)
+  :config
+  (setq use-package-hook-name-suffix nil)
+  )
 (leaf bind-key
-  :doc "macros for binding keys, comes with use-package too"
+  :straight t
+  :doc "macros for binding keys, comes with use-package too")
+(leaf setup
+  "more configuration macros, yay!"
   :straight t)
 ;;; Benchmarking
 ;; must be put asap after use-package for most complete benchmark. Look at its functions named benchmark-init/...
@@ -379,8 +385,9 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
 (leaf crux
   :doc "lots of random useful functions from the emacs Prelude 'distro'. It's up here 'cuz of crux-find-user-init-file"
   :straight t)
-(leaf restart-emacs ;;  to restart emacs, durr. Obsolete in emacs 29.
+(leaf restart-emacs
   :straight t
+  :doc "to restart emacs, durr. Obsolete in emacs 29"
   :emacs< 29)
 (leaf xah-fly-keys
   :straight t
@@ -388,28 +395,20 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
   :doc "modal editing, efficient. Prob would have tried meow if I had known it first"
   :preface
   (defun +move-beginning-of-line () "moves all the way to the start" (interactive) (move-beginning-of-line 1))
-  (defun +xfk-command-mode-n ()
-    "in dirvish-mode, does dirvish-narrow, otherwise isearch."
-    (interactive)
-    (cond ((and (string-equal major-mode "dired-mode")
-                (bound-and-true-p dirvish-override-dired-mode))
-           (dirvish-narrow))
-          (t (isearch-forward))))
-  (defun +xfk-command-mode-j ()
-    "in dirvish-mode, does dired-up-directory, otherwise backwards-char"
-    (interactive)
-    (cond ((string-equal major-mode "dired-mode")   (dired-up-directory))
-          (t (backward-char))))
-  (defun +xfk-command-mode-l ()
-    "in dirvish-mode, does dired-up-directory, otherwise forwards-char"
-    (interactive)
-    (cond ((string-equal major-mode "dired-mode")   (dired-find-file))
-          (t (forward-char))))
-  (defun +xfk-command-mode-g ()
-    "in dired-mode, does dired-up-directory, otherwise forwards-char"
-    (interactive)
-    (cond ((string-equal major-mode "dired-mode") (wdired-change-to-wdired-mode))
-          (t (xah-delete-current-text-block))))
+  (defun +xfk-command-mode-n () (interactive)
+         (cond ((and (string= major-mode "dired-mode")
+                     (bound-and-true-p dirvish-override-dired-mode))
+                (dirvish-narrow))
+               (t (isearch-forward))))
+  (defun +xfk-command-mode-j () (interactive)
+         (cond ((string= major-mode "dired-mode") (dired-up-directory))
+               (t (backward-char))))
+  (defun +xfk-command-mode-l () (interactive)
+         (cond ((string= major-mode "dired-mode") (dired-find-file))
+               (t (forward-char))))
+  (defun +xfk-command-mode-g () (interactive)
+         (cond ((string= major-mode "dired-mode") (wdired-change-to-wdired-mode))
+               (t (xah-delete-current-text-block))))
   :bind
   (global-map
    ("C-y" . yank)
@@ -933,10 +932,11 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
   (setq byte-compile-warnings '(cl-functions)) ;make it not complain about using the depreciated cl.el instead of cl-lib
   )
 
-(use-package highlight-symbol ; highlight all occurances of symbol at point in buffer
-  :disabled                  ; "<f7> e e" binded in  xah-fly-keys also does this
+(leaf highlight-symbol   ; highlight all occurances of symbol at point in buffer
   :straight t
-  :hook (prog-mode . highlight-symbol-mode))
+  :when nil                  ; "<f7> e e" binded in  xah-fly-keys also does this
+  :hook
+  prog-mode-hook)
 
 ;;;; ELisp Debugging
 ;; see https://github.com/progfolio/.emacs.d/blob/master/init.org#debugging
@@ -1422,8 +1422,8 @@ Notes:
 (use-package cdlatex ;; fast LaTeX math input
   :straight t
   :hook
-  ((latex-mode
-    LaTeX-mode) . turn-on-cdlatex)
+  ((latex-mode-hook
+    LaTeX-mode-hook) . turn-on-cdlatex)
   ;; (org-mode . turn-on-org-cdlatex)
   )
 ;;; Citations 
@@ -1600,7 +1600,10 @@ from https://www.n16f.net/blog/clearing-the-eshell-buffer/"
   :after esh-mode
   :defer-config
   (setq eshell-prompt-function 'epe-theme-multiline-with-status))
-
+(leaf eshell-git-prompt
+  :straight t
+  :doc "more prompts, but with git info as well.
+I don't like any 'cuz no fish-style directory abbreviation")
 (leaf eshell-up
   :straight t
   :after esh-mode
@@ -1608,6 +1611,12 @@ from https://www.n16f.net/blog/clearing-the-eshell-buffer/"
   :setq
   ;; (eshell-up-ignore-case . nil) ;; make eshell-up searches case sensitive:
   (eshell-up-print-parent-dir . t))
+(leaf esh-autosuggest
+  :straight t
+  :doc "FISh-like history autosuggestions"
+  :hook eshell-mode-hook)
+
+
 
 (leaf eshell-syntax-highlighting
   :straight t
@@ -1637,24 +1646,25 @@ from https://www.n16f.net/blog/clearing-the-eshell-buffer/"
   :require t)
 (leaf fish-completion ;; adds to pcomplete suggestions via FISh
   :straight t
+  :require t  
+  :when (executable-find "fish")
   :after pcomplete
-  :init
-  (when (and (executable-find "fish")
-             (require 'fish-completion nil t))
-    (global-fish-completion-mode))
+  :global-minor-mode global-fish-completion-mode
   :config
   (setq fish-completion-fallback-on-bash-p t))
 (leaf bash-completion ;; adds to pcomplete suggestions via BASh
   :straight t)
 ;;; Completion-related... Idk what to name this 
-(use-package dabbrev        ; Dynamic Abbrev
+(leaf dabbrev
+  :doc "Dynamic Abbrev"
   ;; Tip: use Dabbrev with autocompletion globally! 
 
   ;; Swap M-/ and C-M-/
-  :bind (("M-/" . dabbrev-completion)
-         ("C-M-/" . dabbrev-expand))
+  :bind
+  ("M-/" . dabbrev-completion)
+  ("C-M-/" . dabbrev-expand)
   ;; Other useful Dabbrev configurations.
-  :custom
+  :pre-setq
   (dabbrev-ignored-buffer-regexps '("\\.\\(?:pdf\\|jpe?g\\|png\\)\\'")))
 
 (leaf hippie-exp
@@ -1948,10 +1958,11 @@ variable `project-local-identifier' to be considered a project."
   )
 (leaf flymake
   :straight t
-  "Linter. I don't use flycheck 'cuz I haven't found a need to, and some say it's slower than current flymake on large files."
-  :bind ((flymake-mode-map
-          ("C-#" . flymake-goto-next-error)
-          ("C-$" . flymake-goto-prev-error))))
+  :doc "Linter. I don't use flycheck 'cuz I haven't found a need to, and some say it's slower than current flymake on large files."
+  :bind
+  (flymake-mode-map
+   ("C-#" . flymake-goto-next-error)
+   ("C-$" . flymake-goto-prev-error)))
 (leaf eglot
   :straight t
   :hook
@@ -2058,8 +2069,7 @@ variable `project-local-identifier' to be considered a project."
         :duration eros-eval-result-duration))))
 ;;; Ruby Programming 
 ;; see professional setup: https://old.reddit.com/r/emacs/comments/xqojo7/emacs_and_rails/iqbh0id/
-;;; Other-languages Programming 
-
+;;; Other-languages Programming
 
 (leaf matlab-mode
   :straight t)
@@ -2079,8 +2089,7 @@ variable `project-local-identifier' to be considered a project."
 (leaf guix
   :straight t
   :doc "interface for the guix package manager"
-  :when (or +mango +durian)
-  )
+  :when (or +mango +durian))
 
 ;;; Password-Manager 
 (leaf bitwarden
@@ -2162,7 +2171,6 @@ variable `project-local-identifier' to be considered a project."
         erc-fill-function 'erc-fill-static
         erc-fill-static-center 20)
   (setq erc-track-enable-keybindings t) ; enable C-c C-SPC to go to new messages
-
   )
 (leaf erc-hl-nicks
   :straight t
@@ -2276,8 +2284,6 @@ variable `project-local-identifier' to be considered a project."
 (setq +variable-font "ETBembo")
 (setq +CJK-font "LXGW WenKai Mono")
 
-
-
 (+font-setup)
 
 ;;;###autoload
@@ -2353,14 +2359,15 @@ This function is added to the `standard-themes-post-load-hook'."
   :straight t
   :hook after-init-hook)
 
-(leaf modeline
+(leaf *modeline
   :init
-  ;; WARNING: THIS CAUSES MODELINE TO FAIL IF PUT AFTER INIT, IDK WHY, MAYBE 'cUZ OF THEME LOADING AFTER after-init-hook
+  ;; WARNING: THIS CAUSES MODELINE TO FAIL IF PUT AFTER INIT, IDK WHY, MAYBE 'CUZ OF THEME LOADING AFTER after-init-hook
   (custom-set-faces
    '(mode-line ((t (:height 0.8))))
    ;; '(mode-line-active ((t ( :height 0.8)))) ; For 29+
    ;; '(mode-line-inactive ((t ( :height 0.8))))
    ))
+
 
 (leaf doom-modeline
   :straight t
@@ -2493,11 +2500,11 @@ This function is added to the `standard-themes-post-load-hook'."
   (setq read-process-output-max (* 1024 1024)) ;; 1MiB, for lsp to be faster
 
   :hook
-  ((c-mode
-    c++-mode
-    python-mode
-    haskell-mode) . lsp-deferred)
-  (lsp-mode . lsp-enable-which-key-integration)
+  ((c-mode-hook
+    c++-mode-hook
+    python-mode-hook
+    haskell-mode-hook) . lsp-deferred)
+  (lsp-mode-hook . lsp-enable-which-key-integration)
   :config
   (setq lsp-idle-delay 0.1)
   (setq lsp-ui-doc-enable nil)
@@ -2507,7 +2514,6 @@ This function is added to the `standard-themes-post-load-hook'."
   (setq lsp-ui-sideline-show-code-actions t)
   (setq lsp-ui-sideline-delay 0.05)
 
-  
   (setq lsp-ui-doc-show-with-cursor t)
   (setq lsp-ui-doc-show-with-mouse t)
   (setq lsp-lens-enable t)
@@ -2704,7 +2710,7 @@ This function is added to the `standard-themes-post-load-hook'."
 ;;   )
 
 
-;; ;; Commented out 'cuz I couldn't get it to work nicely, the prompt detection was messed up. I think it's outdated.
+;; ;; Commented out 'cuz I couldn't get it to work nicely, the prompt detection was messed up. I think it's outdated. Lovely ideas tho.
 ;; (leaf aweshell
 ;;   :straight (aweshell :type git :host github :repo "manateelazycat/aweshell"
 ;;                       :files (:defaults (:exclude ("eshell-did-you-mean.el"
@@ -2712,8 +2718,9 @@ This function is added to the `standard-themes-post-load-hook'."
 ;;                                                    "eshell-up.el"
 ;;                                                    "exec-path-from-shell.el"))))
 ;;   eshell-did-you-mean eshell-prompt-extras eshell-up exec-path-from-shell
-;;   :require t eshell
+;;   :require t
 ;;   :doc "eshell extensions, powered by eshell-prompt-extras"
+;;   :after esh-mode
 ;;   )
 
 "stop hs-mode from folding the header"
@@ -2879,29 +2886,10 @@ This function is added to the `standard-themes-post-load-hook'."
 
 ;;; custom-set stuff
 (cond
- (+asses    (custom-set-faces
-             ;; custom-set-faces was added by Custom.
-             ;; If you edit it by hand, you could mess it up, so be careful.
-             ;; Your init file should contain only one such instance.
-             ;; If there is more than one, they won't work right.
-             '(default ((t (:family "mononoki NF" :foundry "outline" :height 120 :width normal))))))
- (+durian   (custom-set-faces
-             '(default ((t (:family "mononoki"    :foundry "UKWN"    :height 151 :width normal))))))
- (+mango    (custom-set-faces
-             '(default ((t (:family "mononoki"    :foundry "UKWN"    :height 113 :width normal))))))
- (+apexless (custom-set-faces ;;it's just here so Emacs doesn't randomly strew custom-set-faces over this file
-             '(default ((t (:family "mononoki Nerd Font" :foundry "nil"  :height 140))))))
- ) 
-
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(custom-safe-themes
-   '("c3af4ee7a19412fb5a032ac287041171784abf23eb5e3107948388bc04ebc70b" "22c213e81a533c259127302ef1e0f2d1f332df83969a1f9cf6d5696cbe789543" "931ee45708e894d5233fc4a94ae0065c765c1a0aeb1bd8d9feee22f5622f44b4" "02f57ef0a20b7f61adce51445b68b2a7e832648ce2e7efb19d217b6454c1b644" "e9d47d6d41e42a8313c81995a60b2af6588e9f01a1cf19ca42669a7ffd5c2fde" default))
- '(ignored-local-variable-values
-   '((cider-print-fn . "sicmutils.expression/expression->stream"))))
+ (+asses    (custom-set-faces '(default ((t (:family "mononoki NF"        :foundry "outline" :height 120 :width normal))))))
+ (+durian   (custom-set-faces '(default ((t (:family "mononoki"           :foundry "UKWN"    :height 151 :width normal))))))
+ (+mango    (custom-set-faces '(default ((t (:family "mononoki"           :foundry "UKWN"    :height 113 :width normal))))))
+ (+apexless (custom-set-faces '(default ((t (:family "mononoki Nerd Font" :foundry "nil"     :height 140))))))) 
 
 ;;; TESTING GROUNDS
 
@@ -3197,8 +3185,8 @@ TODAYP is t when the current agenda view is on today."
                          ("integration" "integration/*")
                          (:exclude ".dir-locals.el" "*-tests.el")))
   :hook
-  (eshell-load . eat-eshell-mode)
-  ;; (eshell-load . eat-eshell-visual-command-mode)
+  (eshell-load-hook . eat-eshell-mode)
+  ;; (eshell-load-hook . eat-eshell-visual-command-mode)
   :defer-config
   (setq eat-kill-buffer-on-exit t))
 
@@ -3225,9 +3213,6 @@ TODAYP is t when the current agenda view is on today."
   :straight t
   :after (yasnippet haskell-mode))
 
-
-
-
 (leaf pcre2el
   :straight t
   :doc "Perl-Compatible RegEx to Emacs Lisp rx"
@@ -3249,16 +3234,33 @@ TODAYP is t when the current agenda view is on today."
               (guid    (seq uuid)))
        (rxt-elisp-to-pcre (rx ,@expressions)))))
 
-
-
 (leaf fennel-mode
   :straight t
-  
+  :config
   (leaf antifennel
     :doc "compile lua code to equivalent fennel code and view in buffer! Requires installed antifennel"
     :hook
-    lua-mode-hook)
-  )
+    lua-mode-hook))
+
+(leaf eshell-did-you-mean               
+  :straight t
+  :doc "supposed to be a do-u-mean-this? kinda thing, but I think the eshell extensions
+I loaded messed up its setup function (eshell-did-you-mean-setup)." ;TODO fix this, read the string on left
+  :after esh-mode
+  :init
+  (eshell-did-you-mean-setup))
 
 
+;; (leaf exec-path-from-shell
+;;   :straight t
+;;   :require t
+;;   :doc "TODO: well read up (below link) boi, set things right."
+;;   :url "https://github.com/purcell/exec-path-from-shell"
+;;   :after esh-mode
+;;   :config
+;;   (dolist (var '("SSH_AUTH_SOCK" "SSH_AGENT_PID" "GPG_AGENT_INFO" "LANG" "LC_CTYPE" "NIX_SSL_CERT_FILE" "NIX_PATH"))
+;;     (add-to-list 'exec-path-from-shell-variables var))
+;;   (when (memq window-system '(mac ns x))
+;;     (exec-path-from-shell-initialize))
+;;   )
 
