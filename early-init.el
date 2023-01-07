@@ -2,7 +2,7 @@
 ;;; Code:
 (setq
  gc-cons-threshold most-positive-fixnum ; Inhibit garbage collection during startup
- gc-cons-percentage 1.0
+ gc-cons-percentage 0.6 ; Portion of heap used for allocation.  Defaults to 0.1. don't need to change during startup when gc-cons-threshold is so high, it never triggered even on 0.1
  package-quickstart nil ; Prevent package.el loading packages prior to their init-file
  package-enable-at-startup nil
  ad-redefinition-action 'accept     ; Disable warnings from legacy advice system
@@ -34,8 +34,25 @@
 
 ;; Skipping a bunch of regular expression searching in the file-name-handler-alist should improve start time.
 ;; it'll be set back after startup.
-(defvar default-file-name-handler-alist file-name-handler-alist)
-(setq file-name-handler-alist nil)
+(unless (daemonp)
+  (let ((original file-name-handler-alist))
+    (setq-default file-name-handler-alist nil)
+    (add-hook 'emacs-startup-hook
+              (lambda ()
+                ;; Startup might have changed it, so preserve those additions
+                (setq file-name-handler-alist
+                      (delete-dups (append file-name-handler-alist
+                                           original)))))))
+
+;; Modified from Doom Emacs. `load-file' sends the "Loading X..."
+;; message, which triggers a redisplay, which has an appreciable
+;; effect on startup times. This supresses the message.
+(define-advice load-file (:override (file) silence)
+  (load (expand-file-name file) nil 'nomessage 'nosuffix))
+(add-hook 'emacs-startup-hook
+          (lambda ()
+            (advice-remove 'load-file #'load-file@silence)))
+
 
 (defun +gc-after-focus-change ()
   "Run GC when frame loses focus."
@@ -46,14 +63,13 @@
   (run-with-idle-timer
    1 nil
    (lambda ()
-     (setq file-name-handler-alist default-file-name-handler-alist
-           ;; Set gc threshold back to normal
-           ;; if pauses are too long, decrease the threshold
-           ;; if pauses are too frequent, increase the threshold
-           gc-cons-threshold (* 128 1024 1024) ; increase garbage collection limit to 100MiB, default is 0.8MB, measured in bytes
-           gc-cons-percentage 0.6 ; Portion of heap used for allocation.  Defaults to 0.1.
-           )
-     (message "gc-cons-threshold & file-name-handler-alist restored, Emacs ready in %s with %d garbage collections."
+     (setq
+      ;; Set gc threshold back to normal
+      ;; if pauses are too long, decrease the threshold
+      ;; if pauses are too frequent, increase the threshold
+      gc-cons-threshold (* 128 1024 1024) ; increase garbage collection limit to 100MiB, default is 0.8MB, measured in bytes
+      )
+     (message "gc_th&fh-alist ^_^, Emacs ready in %s with %d garbage collections."
               (format "%.2f seconds"
                       (float-time
                        (time-subtract after-init-time before-init-time)))
