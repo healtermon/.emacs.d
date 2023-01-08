@@ -70,13 +70,14 @@
 ;; - log-interaction-mode for presenting
 ;; - centaur tabs, nice-looking tabs
 ;; - zotra, zotero translators without using zotera client
-;; - blackout, an easier delight/diminish/dim, for changing both major and minor mode appearance in modeline
-;; - GCMH, the Garbage Collector Magic Hack, changes GC threshold based on user activity
 
 ;;;;; Cool packages that I want to install later on
 ;; - persp-mode, workspace manager
 ;; - dumb-jump, for when u don't have lsp and want to jump to definitions
 ;; - undo-propose, stage undos in a separate buffer
+;; - volatile-highlights, highlights editing part when yanking
+;; - pulse.el, to pulse regions when editing. idk for now what is "download through CVS": https://www.emacswiki.org/emacs/PulseRegion, for this https://blog.meain.io/2020/emacs-highlight-yanked or equivalent advice given to functions from Nasy Emacs.
+
 nil
 ;;; Config Debugging
 ;; idk where to put this, here will do.
@@ -135,6 +136,16 @@ nil
   in your init file, the packages are sequentially evaluated. For keymaps to evaluate to valid values, the interpreter should allow you to assign or set functions to void things.
   However, this is emacs lisp; obviously not the case. How then? by creating dummy variables to bind to like function prototypes in c, combined with the autoloading by the package
   manager, you can group relevant parts of your config together.
+- :leaf-defer t/nil (default t) controls whether u want the keywords in leaf-defer-keywords to defer :config and the rest, till the package loads. :defer-config defers either way. Play with this example:
+(leaf org
+	:leaf-defer t
+	:mode ("\\.org$'" . org-mode)
+	:init
+	(setq a 'b)
+	:config
+	(setq c 'd)
+	:defer-config
+	(setq e 'f))
 
 IMMEDIATE   |:DEFERRED
 :preface     |:preface
@@ -164,7 +175,10 @@ Comparison to use-package (that are not on github)
     ;; only after installing this can we make this neater
     (straight-use-package 'leaf-keywords)
     :config
-    (leaf-keywords-init))
+    (leaf-keywords-init)
+		(leaf blackout
+			:straight t
+			:doc "an easier delight/diminish/dim, for changing both major and minor mode appearance in modeline"))
 	(leaf leaf-convert
 		:straight t
 		:doc "converts to leaf any sexp passed to it, doesn't work perfectly when converting bind-keys->leaf-keys"
@@ -173,11 +187,11 @@ Comparison to use-package (that are not on github)
 		:straight t
 		:defer-config
 		(setq imenu-list-size 30
-					imenu-list-position 'left))
-	)
+					imenu-list-position 'left)))
+
 (leaf once
   :straight (once :type git :host github :repo "emacs-magus/once")
-  :doc "more configuration macros, yay!")
+  :doc "macros for adding code to run on the first time a hook is run")
 
 (leaf use-package
   :straight t
