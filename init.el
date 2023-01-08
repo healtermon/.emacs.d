@@ -78,7 +78,7 @@
 ;; - dumb-jump, for when u don't have lsp and want to jump to definitions
 ;; - undo-propose, stage undos in a separate buffer
 nil
-;;; Debugging
+;;; Config Debugging
 ;; idk where to put this, here will do.
 (setq +init-file-debug t)
 (setq debug-on-error nil)
@@ -208,101 +208,7 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
   ;; Work around a bug where esup tries to step into the byte-compiled
   ;; version of `cl-lib', and fails horribly.
   (setq esup-depth 0))
-;;; Function & Variable Definitions
-;; (leaf no-littering
-;;   :straight t
-;;   :require t
-;;   :doc "sets the data and temp dirs of many packages to /etc and /var in `user-emacs-directory'.")
-
-(defun +system-name? (name-string)
-  (string= system-name name-string))
-
-;; This file supports a few computers
-(defvar +apexless (and (eq system-type 'darwin)) "Whether Emacs is running on my macbook pro 14-inch m1 pro") ;; system-name Apexless/Apexless.local/???
-(defvar +termux   (and (+system-name? "localhost")) "Whether Emacs is running on termux (probably on my phone)")
-(defvar +mango    (and (+system-name? "mango")) "Whether Emacs is running on my linux desktop running NixOS")
-(defvar +asses    (and (+system-name? "ASSES-UX310UQK")) "Whether Emacs is running on ASSES-UX310UQK (my poly laptop)")
-(defvar +durian   (and (+system-name? "DURIAN")) "Whether Emacs is running on kor's poly laptop running Manjaro")
-(defvar +nix-on-droid  (+system-name? "nix-on-droid-placeholder-name") "Whether emacs is running on nix-on-droid")
-(defvar +home-dir nil) ;; will change if it gets more complicated than this, currently unused
-(defvar +emacs-dir (file-truename user-emacs-directory) "user-emacs-directory")
-(defvar +stuff-dir (file-truename "~/stuff/") "my main storage directory")
-(defvar +lisp-dir                     (concat +emacs-dir "lisp/"))
-(defvar +user-early-init-file         (concat +emacs-dir "early-init.el") "early-init.el in user-emacs-directory")
-(defvar +backup-file-dir              (concat +emacs-dir "backups/"))
-(defvar +pdf-view-restore-filename    (concat +emacs-dir ".pdf-view-restore"))
-(defvar +bibliography-directory       (concat +stuff-dir "notes/bib/references.bib"))
-(defvar +zotero-styles-directory      (concat +stuff-dir "Zotero/styles/") )
-(defvar +healtermon-gcal-file         (concat +stuff-dir "notes/calendars/gcal.org") "healtermon@gmail.com main calendar") ;; i'll elogate the names if variety of files expands
-(defvar +healtermon-gtasks-file       (concat +stuff-dir "notes/tasks/gtasks.org")   "healtermon@gmail.com \"My Tasks\" tasklist")
-(defvar +org-roam-dir                 (concat +stuff-dir "notes/zk/"))
-(defvar +org-download-image-directory (concat +stuff-dir "notes/zk/p/"))
-(defvar +org-roam-dailies-directory "daily/" "diary directory relative to org-roam-directory")
-;; (setq xenops-cache-directory )
-
-(when +apexless
-  ;; (load (concat +lisp-dir "funcs.el"))
-  (load (concat +lisp-dir "random-secrets.el")))
-
-
-(defun +delete-file-visited-by-buffer (buffername)
-  "Delete the file visited by the buffer named BUFFERNAME."
-  (interactive "b")
-  (let* ((buffer (get-buffer buffername))
-         (filename (buffer-file-name buffer)))
-    (when filename
-      (delete-file filename)
-      (kill-buffer-ask buffer))))
-
-(defun +clear ()
-  "clear current comint buffer"
-  (interactive)
-  (let ((comint-buffer-maximum-size 0))
-    (comint-truncate-buffer)))
-
-
-;; from https://www.emacswiki.org/emacs/HalfScrolling#h5o-4
-(defun +scroll-half-page (direction)
-  "Scrolls half page up if `direction' is non-nil, otherwise will scroll half page down."
-  (let ((opos (cdr (nth 6 (posn-at-point)))))
-    ;; opos = original position line relative to window
-    (move-to-window-line nil) ;; Move cursor to middle line
-    (if direction
-        (recenter-top-bottom -1) ;; Current line becomes last
-      (recenter-top-bottom 0))   ;; Current line becomes first
-    (move-to-window-line opos))) ;; Restore cursor/point position
-;;;###autoload
-(defun +scroll-half-page-down ()
-  "Scrolls exactly half page down keeping cursor/point position."
-  (interactive)
-  (+scroll-half-page nil))
-;;;###autoload
-(defun +scroll-half-page-up ()
-  "Scrolls exactly half page up keeping cursor/point position."
-  (interactive)
-  (+scroll-half-page t))
-
-(defun +irc () ;; overwrites rcirc command, but I don't use rcirc anyways
-  "Connect to IRC"
-  (interactive)
-  (circe "Libera Chat"))
-
-(defun +execute-in-vterm (command)
-  "Insert text in vterm and execute."
-  (interactive)
-  (require 'vterm)
-  (let ((buf (current-buffer)))
-    (unless (get-buffer vterm-buffer-name)
-      (vterm))
-    (display-buffer vterm-buffer-name t)
-    (switch-to-buffer-other-window vterm-buffer-name)
-    (vterm--goto-line -1)
-    (message (concat "sending to vterm:\"" command "\""))
-    (vterm-send-string command)
-    (vterm-send-return)
-    (switch-to-buffer-other-window buf))) 
-
-;;; Default configs
+;;; Default configs that are absolutely shared across all systems
 (setq user-mail-address "healtermon@gmail.com")
 (setq user-full-name "L.R.J, Samuel")
 
@@ -355,30 +261,10 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
  )
 (setq indent-tabs-mode nil) ; Toggle whether indentation can insert TAB characters
 
-
 (blink-cursor-mode -1)
 (leaf paren
   :tag "built-in"
   :global-minor-mode show-paren-mode)
-
-(leaf time
-  :straight (time :type built-in)
-  :doc "display of time, date, load numbers, name of mail inbox with new mail, etc..."
-  :tag "built-in"
-  :unless +apexless ; apexless has time permanently displayed so you don't need this
-  :setq
-  (display-time-default-load-average . nil) ; Don't display load average
-  (display-time-24hr-format . t)            ; use hh:mm format instead
-  :config
-  (display-time-mode t))
-
-(column-number-mode 1)  
-
-;;Put all autosave files like #filename.whatever# in the same directory
-(setq auto-save-file-name-transforms `((,(rx (zero-or-more not-newline)) ,+backup-file-dir t)))
-
-;;Put all backups like filename.whatever~ in one directory so emacs doesn't strew them
-(setq backup-directory-alist `((,(rx (zero-or-more not-newline)) . ,+backup-file-dir)))
 
 (leaf recentf
   :straight (recentf :type built-in)
@@ -403,9 +289,8 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
   )
 
 
-;; set buffer to auto-update when the associated file is written to externally, and set it to update in 1s
-;; (customize-set-variable 'auto-revert-interval 1)
-(setq auto-revert-interval 10)
+;; set buffer to auto-update every 1.0s when the associated file is written to externally
+(setq auto-revert-interval 1.0)
 (global-auto-revert-mode 1)
 
 (setq enable-recursive-minibuffers t) ; enables more than 1 minibuffer to be available at once
@@ -418,19 +303,11 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
 (add-hook 'isearch-mode-hook #'hl-line-mode)
 (add-hook 'isearch-mode-end-hook '+turn-off-hl-line-mode)
 
-(cond (+apexless ;; no (toggle-frame-maximized) as you can't move or resize the window without undoing it, and no fullscreen 'cuz stupid notch
-       (setq default-frame-alist
-             (append ;; these parameters perfectly fit my screen, like (toggle-frame-maximized), gotten by (frame-height)+1 and (frame-width)
-              '((top . 0)
-                (left . 0)
-                (width . 187)
-                (height . 63))
-              default-frame-alist)))
-      (+mango nil)
-      (t (toggle-frame-fullscreen)))
 
-
-;;; essential packages for everyone
+;;;; Elisp Programming
+;; in Emacs, elisp programming is more important than other sorts of programming,
+;; equivalent to whether the app settings work or not
+;; suggestions: https://old.reddit.com/r/emacs/comments/zfwsc0/please_recommend_packages_for_editing_elisp/
 (leaf crux
   :doc "lots of random useful functions from the emacs Prelude 'distro'. It's up here 'cuz of crux-find-user-init-file"
   :straight t)
@@ -438,6 +315,7 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
   :straight t
   :doc "to restart emacs, durr. Obsolete in emacs 29"
   :emacs< 29)
+
 (leaf xah-fly-keys
   :straight t
   :require t
@@ -537,10 +415,301 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
                         macrostep))
   (setq lispy-close-quotes-at-end-p t))
 
-(leaf sotlisp ;; TODO: figure out M-RET keybinding clashes, and clashes with lispy and xah-fly-keys
+;; (leaf sotlisp ;; TODO: figure out M-RET keybinding clashes, and clashes with lispy and xah-fly-keys
+;;   :straight t
+;;   :doc "Speed-Of-Thought, abbrev way of typing elisp"
+;;   :hook (emacs-lisp-mode . speed-of-thought-mode))
+
+
+;; ;; Commented out as trying puni + lispy
+;; (leaf paredit
+;;   :straight t
+;;   :doc "functions for parentheses editing"
+;;   :hook
+;;   emacs-lisp-mode-hook
+;;   lisp-interaction-mode-hook
+;;   ielm-mode-hook
+;;   lisp-mode-hook
+;;   eval-expression-minibuffer-setup-hook
+;;   scheme-mode-hook
+;;   clojure-mode-hook
+;;   cider-repl-mode-hook
+;;   :bind (paredit-mode-map
+;;          ("M-s")))
+
+;; modern libraries, depended on by plenty of programs
+(leaf dash
+  :doc "Dash is a modern list library for emacs-lisp which can replace the outdated cl-lib libraries."
   :straight t
-  :doc "Speed-Of-Thought, abbrev way of typing elisp"
-  :hook (emacs-lisp-mode . speed-of-thought-mode))
+  ;; :global-minor-mode global-dash-fontify-mode
+  )
+(leaf f
+  :doc "F is a modern emacs-lisp library for working with files and filesystem paths. I use it in some of my functions and configurations."
+  :straight t) 
+(leaf s
+  :doc "S is a modern emacs-lisp library for string manipulation."
+  :straight t)
+
+(leaf aggressive-indent
+  :straight t
+  :hook
+	emacs-lisp-mode-hook
+  lisp-mode-hook
+  clojure-mode-hook)
+
+(leaf rainbow-delimiters
+  :straight t
+  :hook prog-mode-hook
+  :custom-face
+  (rainbow-delimiters-depth-0-face . '((t (:foreground "dark orange"))))
+  (rainbow-delimiters-depth-1-face . '((t (:foreground "light grey"))))
+  (rainbow-delimiters-depth-2-face . '((t (:foreground "deep pink"))))
+  (rainbow-delimiters-depth-3-face . '((t (:foreground "chartreuse"))))
+  (rainbow-delimiters-depth-4-face . '((t (:foreground "deep sky blue"))))
+  (rainbow-delimiters-depth-5-face . '((t (:foreground "yellow"))))
+  (rainbow-delimiters-depth-6-face . '((t (:foreground "orchid"))))
+  (rainbow-delimiters-depth-7-face . '((t (:foreground "spring green"))))
+  (rainbow-delimiters-depth-8-face . '((t (:foreground "sienna1"))))
+  (rainbow-delimiters-unmatched-face . '((t (:foreground "grey")))))
+
+(leaf hideshow ; TODO: PROBABLY HARD: make hs-fold not fuck up outli's headers in the case like 2 headers stacked together
+  :doc "code folding! yay!"
+  :straight (hideshow :type built-in)
+  :hook (prog-mode-hook . hs-minor-mode)
+  :bind (prog-mode-map
+         ("A-<tab>" . +fold-toggle)
+         ("A-S-<tab>" . +fold-toggle-all))
+  :init
+  ;; make a command to toggle all hideshow, taken from hideshow.el top commentary
+  (defvar +hs-hide nil "Current state of hideshow for toggling all.")
+  (defun +toggle-hideshow-all ()
+    (interactive)
+    (setq +hs-hide (not +hs-hide))
+    (if +hs-hide
+        (hs-hide-all)
+      (hs-show-all)))
+  ;; copy of above, but for ts-fold
+  (defvar +ts-fold-hide nil "Current state of hideshow for toggling all.")
+  (defun +toggle-ts-fold-all ()
+    (interactive)
+    (setq +ts-fold-hide (not +ts-fold-hide))
+    (if +ts-fold-hide
+        (ts-fold-open-all)
+      (ts-fold-close-all)))
+  ;; taken from Doom Emacs
+  (defun +fold--ts-fold-p ()
+    (and (bound-and-true-p tree-sitter-mode)
+         (featurep 'ts-fold)))
+  ;; the 2 below commands rely on ts-fold, and falls back to hideshow when not available
+  (defun +fold-toggle-all ()
+    (interactive)
+    (cond ((+fold--ts-fold-p) (+toggle-ts-fold-all))
+          (t (+toggle-hideshow-all))))
+  (defun +fold-toggle ()
+    (interactive)
+    (cond ((+fold--ts-fold-p) (ts-fold-toggle))
+          (t (hs-toggle-hiding))))
+  )
+
+(leaf macrostep 
+  :straight t
+  :require t
+  :doc "macroexpand conveniently"
+  :bind
+  (emacs-lisp-mode-map
+   ("C-c e" . macrostep-mode)))
+
+(leaf ipretty 
+  :straight t
+  :doc "eval and pretty-print a sexp"
+  ;; global mode that advices `eval-print-last-sexp' to use ipretty-last-sexp instead
+  :global-minor-mode ipretty-mode)
+
+(leaf eros 
+  :straight t
+	:doc "Show emacs-lisp eval results in an overlay, CIDER style."
+	;; global mode that remaps eval-last-sexp to eros-eval-last-sexp TODO: I don't think this works with ipretty
+  :global-minor-mode eros-mode)
+
+(leaf string-edit-at-point
+  :straight t
+  :doc "avoid escape nightmares by editing strings in a separate buffer")
+(leaf elisp-docstring-mode
+  :straight (elisp-docstring-mode :type git :host github :repo "Fuco1/elisp-docstring-mode")
+  :doc "syntax highlighting for elisp docstrings, can use after calling string-edit on an elisp docstring")
+
+(leaf lispxmp
+  :doc "Annotate value of lines containing ; => ."
+  :straight t
+  :init
+  (setq byte-compile-warnings '(cl-functions)) ;make it not complain about using the depreciated cl.el instead of cl-lib
+  )
+
+;; highlighting! --------------------------------------------
+(leaf highlight-defined
+  :straight t
+  :doc "extra emacs lisp syntax highlighting"
+  :hook
+	emacs-lisp-mode-hook)
+
+;; (use-package highlight-quoted
+;;   :config
+;;   (add-hook 'emacs-lisp-mode-hook 'highlight-quoted-mode)
+;;   (set-face-attribute 'highlight-quoted-symbol nil
+;;                       :inherit 'font-lock-string-face)
+;;  )
+
+;; ;; Commented out 'cuz I value highlight-defined functionality more than quoted color
+;; (leaf lisp-extra-font-lock ;; TODO: figure why user-defined variables don't get highlight. I'm using highlight-defined instead till then...
+;;   :straight t
+;;   :when nil ;; 
+;;   :hook
+;; 	emacs-lisp-mode-hook)
+(leaf morlock
+  :straight t
+  :defer-config
+  (font-lock-add-keywords 'emacs-lisp-mode morlock-el-font-lock-keywords))
+
+;; Commented out 'cuz "<f7> e e" binded in  xah-fly-keys also does this
+;; (leaf highlight-symbol
+;;   :straight t
+;; 	:doc "highlight all occurances of symbol at point in buffer"
+;;   :hook
+;;   prog-mode-hook)
+
+;;;; ELisp Debugging
+;; see https://github.com/progfolio/.emacs.d/blob/master/init.org#debugging
+
+"stop headliine from getting folded"
+;;; Function & Variable Definitions
+(defvar +home-dir nil) ;; will change if it gets more complicated than this, currently unused
+(defvar +emacs-dir (file-truename user-emacs-directory) "user-emacs-directory")
+(defvar +stuff-dir (file-truename "~/stuff/") "my main storage directory")
+(defvar +lisp-dir                     (concat +emacs-dir "lisp/"))
+(defvar +user-early-init-file         (concat +emacs-dir "early-init.el") "early-init.el in user-emacs-directory")
+
+
+
+;; SET THIS BEFORE ANY OTHER DIRECTORY VARIABLES
+(leaf no-littering
+  :straight t
+  :require t
+  :doc "sets the data and temp dirs of many packages to /etc and /var in `user-emacs-directory'."
+  :pre-setq
+  ;; ;; if you want to set your own values
+  ;; `(no-littering-etc-directory . ,(expand-file-name "config/" user-emacs-directory))
+  ;; `(no-littering-var-directory . ,(expand-file-name "data/" user-emacs-directory))
+  ) 
+;; (defvar +backup-file-dir              (concat +emacs-dir "backups/"))
+(defvar +pdf-view-restore-filename    (concat +emacs-dir ".pdf-view-restore"))
+(defvar +bibliography-directory       (concat +stuff-dir "notes/bib/references.bib"))
+(defvar +zotero-styles-directory      (concat +stuff-dir "Zotero/styles/") )
+(defvar +healtermon-gcal-file         (concat +stuff-dir "notes/calendars/gcal.org") "healtermon@gmail.com main calendar") ;; i'll elogate the names if variety of files expands
+(defvar +healtermon-gtasks-file       (concat +stuff-dir "notes/tasks/gtasks.org")   "healtermon@gmail.com \"My Tasks\" tasklist")
+(defvar +org-roam-dir                 (concat +stuff-dir "notes/zk/"))
+(defvar +org-download-image-directory (concat +stuff-dir "notes/zk/p/"))
+(defvar +org-roam-dailies-directory "daily/" "diary directory relative to org-roam-directory")
+;; (setq xenops-cache-directory )
+
+(when +apexless
+  ;; (load (concat +lisp-dir "funcs.el"))
+  (load (concat +lisp-dir "random-secrets.el")))
+
+
+(defun +delete-file-visited-by-buffer (buffername)
+  "Delete the file visited by the buffer named BUFFERNAME."
+  (interactive "b")
+  (let* ((buffer (get-buffer buffername))
+         (filename (buffer-file-name buffer)))
+    (when filename
+      (delete-file filename)
+      (kill-buffer-ask buffer))))
+
+(defun +clear ()
+  "clear current comint buffer"
+  (interactive)
+  (let ((comint-buffer-maximum-size 0))
+    (comint-truncate-buffer)))
+
+
+;; from https://www.emacswiki.org/emacs/HalfScrolling#h5o-4
+(defun +scroll-half-page (direction)
+  "Scrolls half page up if `direction' is non-nil, otherwise will scroll half page down."
+  (let ((opos (cdr (nth 6 (posn-at-point)))))
+    ;; opos = original position line relative to window
+    (move-to-window-line nil) ;; Move cursor to middle line
+    (if direction
+        (recenter-top-bottom -1) ;; Current line becomes last
+      (recenter-top-bottom 0))   ;; Current line becomes first
+    (move-to-window-line opos))) ;; Restore cursor/point position
+;;;###autoload
+(defun +scroll-half-page-down ()
+  "Scrolls exactly half page down keeping cursor/point position."
+  (interactive)
+  (+scroll-half-page nil))
+;;;###autoload
+(defun +scroll-half-page-up ()
+  "Scrolls exactly half page up keeping cursor/point position."
+  (interactive)
+  (+scroll-half-page t))
+
+(defun +irc () ;; overwrites rcirc command, but I don't use rcirc anyways
+  "Connect to IRC"
+  (interactive)
+  (circe "Libera Chat"))
+
+(defun +execute-in-vterm (command)
+  "Insert text in vterm and execute."
+  (interactive)
+  (require 'vterm)
+  (let ((buf (current-buffer)))
+    (unless (get-buffer vterm-buffer-name)
+      (vterm))
+    (display-buffer vterm-buffer-name t)
+    (switch-to-buffer-other-window vterm-buffer-name)
+    (vterm--goto-line -1)
+    (message (concat "sending to vterm:\"" command "\""))
+    (vterm-send-string command)
+    (vterm-send-return)
+    (switch-to-buffer-other-window buf))) 
+
+;;; The rest of Default Configuration
+
+
+(leaf time
+  :straight (time :type built-in)
+  :doc "display of time, date, load numbers, name of mail inbox with new mail, etc..."
+  :tag "built-in"
+  :unless +apexless ; apexless has time permanently displayed so you don't need this
+  :setq
+  (display-time-default-load-average . nil) ; Don't display load average
+  (display-time-24hr-format . t)            ; use hh:mm format instead
+  :config
+  (display-time-mode t))
+(when +apexless
+	(column-number-mode 1))
+
+;; ;; commented out due to no-littering
+;; ;; Put all autosave files like #filename.whatever# in the same directory
+;; (setq auto-save-file-name-transforms `((,(rx (zero-or-more not-newline)) ,+backup-file-dir t)))
+
+;; ;; Put all backups like filename.whatever~ in one directory so emacs doesn't strew them
+;;(setq backup-directory-alist `((,(rx (zero-or-more not-newline)) . ,+backup-file-dir)))
+
+
+(cond (+apexless ;; no (toggle-frame-maximized) as you can't move or resize the window without undoing it, and no fullscreen 'cuz stupid notch
+       (setq default-frame-alist
+             (append ;; these parameters perfectly fit my screen, like (toggle-frame-maximized), gotten by (frame-height)+1 and (frame-width)
+              '((top . 0)
+                (left . 0)
+                (width . 187)
+                (height . 63))
+              default-frame-alist)))
+      (+mango nil)
+      (t (toggle-frame-fullscreen)))
+
+
+;;; essential packages for everyone
 
 
 (leaf which-key
@@ -799,167 +968,6 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
   :hook ((prog-mode-hook text-mode-hook) . outli-mode))
 
 
-;;; Elisp Programming
-;; in Emacs, elisp programming is more important than other sorts of programming,
-;; equivalent to whether the app settings work or not
-;; suggestions: https://old.reddit.com/r/emacs/comments/zfwsc0/please_recommend_packages_for_editing_elisp/
-
-;; (leaf paredit
-;;   :straight t
-;;   :doc "functions for parentheses editing"
-;;   :hook
-;;   emacs-lisp-mode-hook
-;;   lisp-interaction-mode-hook
-;;   ielm-mode-hook
-;;   lisp-mode-hook
-;;   eval-expression-minibuffer-setup-hook
-;;   scheme-mode-hook
-;;   clojure-mode-hook
-;;   cider-repl-mode-hook
-;;   :bind (paredit-mode-map
-;;          ("M-s")))
-
-;; modern libraries, depended on by plenty of programs
-(leaf dash
-  :doc "Dash is a modern list library for emacs-lisp which can replace the outdated cl-lib libraries."
-  :straight t
-  ;; :config
-  ;; (global-dash-fontify-mode)
-  )
-(leaf f
-  :doc "F is a modern emacs-lisp library for working with files and filesystem paths. I use it in some of my functions and configurations."
-  :straight t) 
-(leaf s
-  :doc "S is a modern emacs-lisp library for string manipulation."
-  :straight t)
-
-(leaf aggressive-indent
-  :straight t
-  :hook ((emacs-lisp-mode-hook
-          lisp-mode-hook
-          clojure-mode-hook) .  aggressive-indent-mode))
-
-(leaf rainbow-delimiters
-  :straight t
-  :hook (prog-mode-hook . rainbow-delimiters-mode)
-  :custom-face
-  (rainbow-delimiters-depth-0-face . '((t (:foreground "dark orange"))))
-  (rainbow-delimiters-depth-1-face . '((t (:foreground "light grey"))))
-  (rainbow-delimiters-depth-2-face . '((t (:foreground "deep pink"))))
-  (rainbow-delimiters-depth-3-face . '((t (:foreground "chartreuse"))))
-  (rainbow-delimiters-depth-4-face . '((t (:foreground "deep sky blue"))))
-  (rainbow-delimiters-depth-5-face . '((t (:foreground "yellow"))))
-  (rainbow-delimiters-depth-6-face . '((t (:foreground "orchid"))))
-  (rainbow-delimiters-depth-7-face . '((t (:foreground "spring green"))))
-  (rainbow-delimiters-depth-8-face . '((t (:foreground "sienna1"))))
-  (rainbow-delimiters-unmatched-face . '((t (:foreground "grey")))))
-
-(leaf hideshow ; TODO: PROBABLY HARD: make hs-fold not fuck up outli's headers in the case like 2 headers stacked together
-  :doc "code folding! yay!"
-  :straight (hideshow :type built-in)
-  :hook (prog-mode-hook . hs-minor-mode)
-  :bind (prog-mode-map
-         ("A-<tab>" . +fold-toggle)
-         ("A-S-<tab>" . +fold-toggle-all))
-  :init
-  ;; make a command to toggle all hideshow, taken from hideshow.el top commentary
-  (defvar +hs-hide nil "Current state of hideshow for toggling all.")
-  (defun +toggle-hideshow-all ()
-    (interactive)
-    (setq +hs-hide (not +hs-hide))
-    (if +hs-hide
-        (hs-hide-all)
-      (hs-show-all)))
-  ;; copy of above, but for ts-fold
-  (defvar +ts-fold-hide nil "Current state of hideshow for toggling all.")
-  (defun +toggle-ts-fold-all ()
-    (interactive)
-    (setq +ts-fold-hide (not +ts-fold-hide))
-    (if +ts-fold-hide
-        (ts-fold-open-all)
-      (ts-fold-close-all)))
-  ;; taken from Doom Emacs
-  (defun +fold--ts-fold-p ()
-    (and (bound-and-true-p tree-sitter-mode)
-         (featurep 'ts-fold)))
-  ;; the 2 below commands rely on ts-fold, and falls back to hideshow when not available
-  (defun +fold-toggle-all ()
-    (interactive)
-    (cond ((+fold--ts-fold-p) (+toggle-ts-fold-all))
-          (t (+toggle-hideshow-all))))
-  (defun +fold-toggle ()
-    (interactive)
-    (cond ((+fold--ts-fold-p) (ts-fold-toggle))
-          (t (hs-toggle-hiding))))
-  )
-
-(leaf macrostep 
-  :straight t
-  :require t
-  :doc "macroexpand conveniently"
-  :bind
-  (emacs-lisp-mode-map
-   ("C-c e" . macrostep-mode)))
-
-
-(leaf ipretty 
-  :straight t
-  :doc "eval and pretty-print a sexp"
-  :init
-  ;; global mode that advices `eval-print-last-sexp' to use ipretty-last-sexp instead
-  (ipretty-mode))
-
-(leaf eros ;; Show emacs-lisp eval results in an overlay, CIDER style.
-  :straight t
-  :init
-  (eros-mode 1))
-
-(leaf string-edit-at-point
-  :straight t
-  :doc "avoid escape nightmares by editing strings in a separate buffer")
-(leaf elisp-docstring-mode
-  :straight (elisp-docstring-mode :type git :host github :repo "Fuco1/elisp-docstring-mode")
-  :doc "syntax highlighting for elisp docstrings, can use after calling string-edit on an elisp docstring")
-
-;; highlighting! --------------------------------------------
-(leaf highlight-defined
-  :straight t
-  :doc "extra emacs lisp syntax highlighting"
-  :hook (emacs-lisp-mode-hook . highlight-defined-mode))
-
-;; (use-package highlight-quoted
-;;   :config
-;;   (add-hook 'emacs-lisp-mode-hook 'highlight-quoted-mode)
-;;   (set-face-attribute 'highlight-quoted-symbol nil
-;;                       :inherit 'font-lock-string-face)
-;;  )
-
-(leaf lisp-extra-font-lock ;; TODO: figure why user-defined variables don't get highlight. I'm using highlight-defined instead till then...
-  :straight t
-  :when nil ;; I value highlight-defined functionality more than quoted color
-  :hook ((emacs-lisp-mode-hook) . lisp-extra-font-lock-mode))
-(leaf morlock
-  :straight t
-  :defer-config
-  (font-lock-add-keywords 'emacs-lisp-mode morlock-el-font-lock-keywords))
-
-(leaf lispxmp
-  :doc "Annotate value of lines containing ; => ."
-  :straight t
-  :init
-  (setq byte-compile-warnings '(cl-functions)) ;make it not complain about using the depreciated cl.el instead of cl-lib
-  )
-
-(leaf highlight-symbol   ; highlight all occurances of symbol at point in buffer
-  :straight t
-  :when nil                  ; "<f7> e e" binded in  xah-fly-keys also does this
-  :hook
-  prog-mode-hook)
-
-;;;; ELisp Debugging
-;; see https://github.com/progfolio/.emacs.d/blob/master/init.org#debugging
-
-"stop headliine from getting folded"
 ;;; Generally Useful
 (leaf reveal-in-folder
   :straight t

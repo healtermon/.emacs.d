@@ -78,6 +78,16 @@
        (add-function :after after-focus-change-function #'+gc-after-focus-change)))))
 (add-hook 'emacs-startup-hook #'+reset-early-init-values)
 
+;; This config supports a few computers, mostly broken by now though.
+(defun +system-name? (name-string)
+	(string= system-name name-string))
+(defvar +apexless (and (eq system-type 'darwin)) "Whether Emacs is running on my macbook pro 14-inch m1 pro") ;; system-name Apexless/Apexless.local/???
+(defvar +termux   (and (+system-name? "localhost")) "Whether Emacs is running on termux (probably on my phone)")
+(defvar +mango    (and (+system-name? "mango")) "Whether Emacs is running on my linux desktop running NixOS")
+(defvar +asses    (and (+system-name? "ASSES-UX310UQK")) "Whether Emacs is running on ASSES-UX310UQK (my poly laptop)")
+(defvar +durian   (and (+system-name? "DURIAN")) "Whether Emacs is running on kor's poly laptop running Manjaro")
+(defvar +nix-on-droid  (+system-name? "nix-on-droid-placeholder-name") "Whether emacs is running on nix-on-droid")
+
 ;; should they be here? idk. Why did alexlugit put them in early-init?
 (defvar +font-size 141)
 (defvar +default-font "mononoki Nerd Font")
