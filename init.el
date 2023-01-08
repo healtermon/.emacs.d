@@ -34,7 +34,6 @@
 ;; - so-long
 ;; - easy-kill
 ;; - ox-jira
-;; - gcmh
 ;; - symbol-overlay
 ;; - git-auto-commit-mode
 ;; - transient
@@ -216,12 +215,17 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
   :hook (after-init-hook . benchmark-init/deactivate))
 
 (leaf esup
-  :straight t
-  :doc "Emacs Start UP"
-  :config
-  ;; Work around a bug where esup tries to step into the byte-compiled
-  ;; version of `cl-lib', and fails horribly.
-  (setq esup-depth 0))
+	:straight t
+	:doc "Emacs Start UP"
+	;; note that a package that loads a library first will take up more time, any package that relies on what is
+	;; already loaded will then take up less time. By moving the loading sequence of packages around, you may "pass"
+	;; time from one package to another when they both require a common package, and startup time seems to be lifted off one
+	;; package but in reality stays the same as it is passed to another package.
+	
+	;; Work around a bug where esup tries to step into the byte-compiled
+	;; version of `cl-lib', and fails horribly.
+	:init
+	(setq esup-depth 0))
 ;;; Default configs that are absolutely shared across all systems
 (setq user-mail-address "healtermon@gmail.com")
 (setq user-full-name "L.R.J, Samuel")
@@ -355,16 +359,16 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
   (xah-fly-keys 1))
 
 (leaf puni
-  :straight t
-  :doc "leverages built-in features for structural editing, warning: not all-encompassing"
-  :hook
-  prog-mode-hook
-  eval-expression-minibuffer-setup-hook
-  :bind
-  (puni-mode-map
-   :package puni ;; The difference between leaf-keys and bind-keys is, leaf-keys accepts a :package pkg1 pkg2 pk3... which chains `eval-after-load's for those packages before loading keybindings to the maps, while bind-keys will skip the `eval-after-load's. Henceforth if you want it to load immediately while deferring loading of the current package you give it some other already-loaded package, which is definitely leaf... Otherwise it can be nice to create complex criteria to load your keymaps, like here you can ":package (prog-mode whatever-loads-minibuffer)"
-   ("C-<right>" . puni-slurp-forward)
-   ("C-<left>" . puni-barf-forward)))
+	:straight t
+	:doc "leverages built-in features for structural editing, warning: not all-encompassing"
+	:hook
+	prog-mode-hook
+	eval-expression-minibuffer-setup-hook
+	:bind
+	(puni-mode-map
+	 :package puni ;; The difference between leaf-keys and bind-keys is, leaf-keys accepts a :package pkg1 pkg2 pk3... which chains `eval-after-load's for those packages before loading keybindings to the maps, while bind-keys will skip the `eval-after-load's. Henceforth if you want it to load immediately while deferring loading of the current package you give it some other already-loaded package, which is definitely leaf... Otherwise it can be nice to create complex criteria to load your keymaps, like here you can ":package (prog-mode whatever-loads-minibuffer)"
+	 ("C-<right>" . puni-slurp-forward)
+	 ("C-<left>" . puni-barf-forward)))
 (leaf expand-region ; TODO: test against puni-expand-region and see which I like more, then rebind it in xah-fly-command-map
   :doc "a better expand-region than xah-fly-keys'"
   :straight t)
@@ -384,19 +388,20 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
   scheme-mode-hook
   clojure-mode-hook
   cider-repl-mode-hook
-  :bind  ((lispy-mode-map
-           :package lispy
-           ("C-<return>")
-           ("M-<return>")
-           ("M-RET")
-           ("M-.")
-           ("M-,")
-           ("<SPC>")
-           ("<backspace>"))
-          (lispy-mode-map-special
-           :package lispy
-           ("<SPC>")
-           ("<backspace>")))
+  :bind
+	(lispy-mode-map
+   :package lispy
+   ("C-<return>")
+   ("M-<return>")
+   ("M-RET")
+   ("M-.")
+   ("M-,")
+   ("<SPC>")
+   ("<backspace>"))
+  (lispy-mode-map-special
+   :package lispy
+   ("<SPC>")
+   ("<backspace>"))
   :init
   ;; Enable compatibility with other modes,
   ;; has to be set BEFORE (require 'lispy). Adds overhead, no need to setq-local 'cuz I use these 3 all the time anyways (except edebug)
@@ -410,7 +415,6 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
 ;;   :straight t
 ;;   :doc "Speed-Of-Thought, abbrev way of typing elisp"
 ;;   :hook (emacs-lisp-mode . speed-of-thought-mode))
-
 
 ;; ;; Commented out as trying puni + lispy
 ;; (leaf paredit
@@ -514,13 +518,13 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
   :straight t
   :doc "eval and pretty-print a sexp"
   ;; global mode that advices `eval-print-last-sexp' to use ipretty-last-sexp instead
-  :global-minor-mode ipretty-mode)
+  :global-minor-mode t)
 
-;; (leaf eros 
-;;   :straight t
-;; 	:doc "Show emacs-lisp eval results in an overlay, CIDER style."
-;; 	;; global mode that remaps eval-last-sexp to eros-eval-last-sexp TODO: I don't think this works with ipretty
-;;   :global-minor-mode eros-mode)
+(leaf eros 
+  :straight t
+	:doc "Show emacs-lisp eval results in an overlay, CIDER style."
+	;; global mode that remaps eval-last-sexp to eros-eval-last-sexp TODO: I don't think this works with ipretty
+  :global-minor-mode t)
 
 (leaf string-edit-at-point
   :straight t
@@ -579,8 +583,6 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
 (defvar +lisp-dir                     (concat +emacs-dir "lisp/"))
 (defvar +user-early-init-file         (concat +emacs-dir "early-init.el") "early-init.el in user-emacs-directory")
 
-
-
 ;; SET THIS BEFORE ANY OTHER DIRECTORY VARIABLES
 (leaf no-littering
   :straight t
@@ -602,8 +604,18 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
 	(setq eyebrowse-restore-dir			(var "eyebrowse-restore/"))
 	(setq tabspaces-session-file		(var "tabspaces-session.el"))
 	)
+;; ;; commented out due to no-littering
+
 ;; (defvar +backup-file-dir              (concat +emacs-dir "backups/"))
+
+;; ;; Put all autosave files like #filename.whatever# in the same directory
+;; (setq auto-save-file-name-transforms `((,(rx (zero-or-more not-newline)) ,+backup-file-dir t)))
+
+;; ;; Put all backups like filename.whatever~ in one directory so emacs doesn't strew them
+;;(setq backup-directory-alist `((,(rx (zero-or-more not-newline)) . ,+backup-file-dir)))
+
 ;; (defvar +pdf-view-restore-filename    (concat +emacs-dir ".pdf-view-restore"))
+
 (defvar +bibliography-directory       (concat +stuff-dir "notes/bib/references.bib"))
 (defvar +zotero-styles-directory      (concat +stuff-dir "Zotero/styles/"))
 (defvar +healtermon-gcal-file         (concat +stuff-dir "notes/calendars/gcal.org") "healtermon@gmail.com main calendar") ;; i'll elogate the names if variety of files expands
@@ -613,7 +625,7 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
 (defvar +org-roam-dailies-directory "daily/" "diary directory relative to org-roam-directory")
 
 (when +apexless
-  ;; (load (concat +lisp-dir "funcs.el"))
+  (load (concat +lisp-dir "funcs.el"))
   (load (concat +lisp-dir "random-secrets.el")))
 
 
@@ -674,6 +686,9 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
     (vterm-send-return)
     (switch-to-buffer-other-window buf))) 
 
+(defun +elisp-mode ()
+	(interactive)
+	(emacs-lisp-mode))
 ;;; The rest of Default Configuration
 (leaf recentf
   :straight (recentf :type built-in)
@@ -686,7 +701,7 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
   :config
   (setq recentf-max-saved-items 10000
         recentf-max-menu-items 10000)
-  :global-minor-mode recentf-mode ;; 0.05s lag is worth it
+  :global-minor-mode t ;; 0.05s lag is worth it
   )
 
 (leaf saveplace
@@ -696,6 +711,17 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
   (setq save-place-forget-unreadable-files t)
   :global-minor-mode save-place-mode ;; the one-time 0.05s lag is worth it
   )
+
+(leaf *history-setting
+  :setq
+  (history-delete-duplicates . t))
+(leaf savehist
+  :straight (savehist :type built-in)
+  :doc "save minibuffer command history"
+  :require t
+  :setq
+  (savehist-save-minibuffer-history . t)
+  :global-minor-mode t)
 
 (leaf time
   :straight (time :type built-in)
@@ -710,14 +736,6 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
 (when +apexless
 	(column-number-mode 1))
 
-;; ;; commented out due to no-littering
-;; ;; Put all autosave files like #filename.whatever# in the same directory
-;; (setq auto-save-file-name-transforms `((,(rx (zero-or-more not-newline)) ,+backup-file-dir t)))
-
-;; ;; Put all backups like filename.whatever~ in one directory so emacs doesn't strew them
-;;(setq backup-directory-alist `((,(rx (zero-or-more not-newline)) . ,+backup-file-dir)))
-
-
 (cond (+apexless ;; no (toggle-frame-maximized) as you can't move or resize the window without undoing it, and no fullscreen 'cuz stupid notch
        (setq default-frame-alist
              (append ;; these parameters perfectly fit my screen, like (toggle-frame-maximized), gotten by (frame-height)+1 and (frame-width)
@@ -728,31 +746,17 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
               default-frame-alist)))
       (+mango nil)
       (t (toggle-frame-fullscreen)))
-
-
 ;;; essential packages for everyone
-
 
 (leaf which-key
   :straight t
   :doc "shows a popup with key bindings and functions associated with them"
-  :global-minor-mode which-key-mode)
-
-(leaf *history-setting
-  :setq
-  (history-delete-duplicates . t))
-(leaf savehist
-  :straight (savehist :type built-in)
-  :doc "save minibuffer command history"
-  :require t
-  :setq
-  (savehist-save-minibuffer-history . t)
-  :global-minor-mode savehist-mode)
+  :global-minor-mode t)
 
 (leaf vertico
   :straight (vertico :files (:defaults "extensions/*"))
   :doc "a vertical autocomplete selection menu"
-  :bind ((:vertico-map
+  :bind ((vertico-map
           ("M-DEL" . vertico-directory-delete-word)))
   :init
   (once '(:hooks pre-command-hook)
@@ -776,7 +780,7 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
   :setq
   (completion-styles . '(orderless basic))
   (completion-category-overrides . '((file (styles . (partial-completion)))))
-  :setq (completion-category-defaults . nil)
+  (completion-category-defaults . nil)
   :defer-config
   ;; fix the dollar sign regex "$"
   (defun fix-dollar (args)
@@ -803,74 +807,76 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
 (leaf marginalia ;; annotates the minibuffer like the margins in a book (look on the right side)
   :straight t
   :require t
-  :bind (minibuffer-local-map
-         ("M-A" . marginalia-cycle))
+  :bind
+	(minibuffer-local-map
+   ("M-A" . marginalia-cycle))
   :after vertico 
   :setq
   (marginalia-max-relative-age . 0)
-  :global-minor-mode marginalia-mode)
+  :global-minor-mode t)
 
 (leaf consult ;; provides _good shit_ versions of common commands and more
   :straight t
-  :bind (;; C-c bindings (mode-specific-map)
-         ("C-c h" . consult-history)
-         ("C-c m" . consult-mode-command)
-         ("C-c k" . consult-kmacro)
-         ;; C-x bindings (ctl-x-map)
-         ("C-x M-:" . consult-complex-command) ;; orig. repeat-complex-command
-         ("C-x b" . consult-buffer)            ;; orig. switch-to-buffer
-         ("C-x 4 b" . consult-buffer-other-window) ;; orig. switch-to-buffer-other-window
-         ("C-x 5 b" . consult-buffer-other-frame) ;; orig. switch-to-buffer-other-frame
-         ("C-x r b" . consult-bookmark)           ;; orig. bookmark-jump
-         ("C-x p b" . consult-project-buffer) ;; orig. project-switch-to-buffer
-         ;; Custom M-# bindings for fast register access
-         ("M-#" . consult-register-load)
-         ("M-'" . consult-register-store) ;; orig. abbrev-prefix-mark (unrelated)
-         ("C-M-#" . consult-register)
-         ;; Other custom bindings
-         ("M-y" . consult-yank-pop) ;; orig. yank-pop
-         ;; M-g bindings (goto-map)
-         ("M-g e" . consult-compile-error)
-         ("M-g f" . consult-flymake)     ;; Alternative: consult-flycheck
-         ("M-g g" . consult-goto-line)   ;; orig. goto-line
-         ("M-g M-g" . consult-goto-line) ;; orig. goto-line
-         ("M-g o" . consult-outline)     ;; Alternative: consult-org-heading
-         ("M-g m" . consult-mark)
-         ("M-g k" . consult-global-mark)
-         ("M-g i" . consult-imenu)
-         ("M-g I" . consult-imenu-multi)
-         ("M-g x" . consult-xref)
-         ;; M-s bindings (search-map)
-         ("M-s d" . consult-find)
-         ("M-s D" . consult-locate)
-         ("M-s g" . consult-grep)
-         ("M-s G" . consult-git-grep)
-         ("M-s r" . consult-ripgrep)
-         ("M-s l" . consult-line)
-         ("M-s L" . consult-line-multi)
-         ("M-s k" . consult-keep-lines)
-         ("M-s u" . consult-focus-lines)
-         ("M-s m" . consult-multi-occur)
-         ;; Misc
-         ("<help> a" . consult-apropos)
-         ([remap switch-to-buffer] . consult-buffer)
-         ([remap recentf-open-files] . consult-recent-file)
-         ;; ([remap find-file] . consult-find) ;; I'm damn sure this is not a replacement
-         ;; Isearch integration
-         ("M-s e" . consult-isearch-history)
-         (isearch-mode-map
-          :package leaf
-          ("M-e" . consult-isearch-history)   ;; orig. isearch-edit-string
-          ("M-s e" . consult-isearch-history) ;; orig. isearch-edit-string
-          ("M-s l" . consult-line) ;; needed by consult-line to detect isearch
-          ("M-s L" . consult-line-multi) ;; needed by consult-line to detect isearch
-          )
-         ;; Minibuffer history
-         (minibuffer-local-map
-          :package leaf
-          ("M-s" . consult-history) ;; orig. next-matching-history-element
-          ("M-r" . consult-history) ;; orig. previous-matching-history-element
-          ))
+  :bind
+	(;; C-c bindings (mode-specific-map)
+   ("C-c h" . consult-history)
+   ("C-c m" . consult-mode-command)
+   ("C-c k" . consult-kmacro)
+   ;; C-x bindings (ctl-x-map)
+   ("C-x M-:" . consult-complex-command) ;; orig. repeat-complex-command
+   ("C-x b" . consult-buffer)            ;; orig. switch-to-buffer
+   ("C-x 4 b" . consult-buffer-other-window) ;; orig. switch-to-buffer-other-window
+   ("C-x 5 b" . consult-buffer-other-frame) ;; orig. switch-to-buffer-other-frame
+   ("C-x r b" . consult-bookmark)           ;; orig. bookmark-jump
+   ("C-x p b" . consult-project-buffer)			;; orig. project-switch-to-buffer
+   ;; Custom M-# bindings for fast register access
+   ("M-#" . consult-register-load)
+   ("M-'" . consult-register-store) ;; orig. abbrev-prefix-mark (unrelated)
+   ("C-M-#" . consult-register)
+   ;; Other custom bindings
+   ("M-y" . consult-yank-pop) ;; orig. yank-pop
+   ;; M-g bindings (goto-map)
+   ("M-g e" . consult-compile-error)
+   ("M-g f" . consult-flymake)					 ;; Alternative: consult-flycheck
+   ("M-g g" . consult-goto-line)				 ;; orig. goto-line
+   ("M-g M-g" . consult-goto-line)			 ;; orig. goto-line
+   ("M-g o" . consult-outline)					 ;; Alternative: consult-org-heading
+   ("M-g m" . consult-mark)
+   ("M-g k" . consult-global-mark)
+   ("M-g i" . consult-imenu)
+   ("M-g I" . consult-imenu-multi)
+   ("M-g x" . consult-xref)
+   ;; M-s bindings (search-map)
+   ("M-s d" . consult-find)
+   ("M-s D" . consult-locate)
+   ("M-s g" . consult-grep)
+   ("M-s G" . consult-git-grep)
+   ("M-s r" . consult-ripgrep)
+   ("M-s l" . consult-line)
+   ("M-s L" . consult-line-multi)
+   ("M-s k" . consult-keep-lines)
+   ("M-s u" . consult-focus-lines)
+   ("M-s m" . consult-multi-occur)
+   ;; Misc
+   ("<help> a" . consult-apropos)
+   ([remap switch-to-buffer] . consult-buffer)
+   ([remap recentf-open-files] . consult-recent-file)
+   ;; ([remap find-file] . consult-find) ;; I'm damn sure this is not a replacement
+   ;; Isearch integration
+   ("M-s e" . consult-isearch-history)
+   (isearch-mode-map
+    :package isearch
+    ("M-e" . consult-isearch-history)					;; orig. isearch-edit-string
+    ("M-s e" . consult-isearch-history)				;; orig. isearch-edit-string
+    ("M-s l" . consult-line) ;; needed by consult-line to detect isearch
+    ("M-s L" . consult-line-multi) ;; needed by consult-line to detect isearch
+    )
+   ;; Minibuffer history
+   (minibuffer-local-map
+    :package leaf
+    ("M-s" . consult-history)				;; orig. next-matching-history-element
+    ("M-r" . consult-history)				;; orig. previous-matching-history-element
+    ))
   
   :init
   ;; CUSTOMISABLE WITH CUSTOM INTERFACE
@@ -893,11 +899,12 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
   )
 (leaf consult-dir
   :straight t
-  :bind (("C-x C-d" . consult-dir)
-         (vertico-map
-          :package vertico
-          ("C-x C-d" . consult-dir)
-          ("C-x C-j" . consult-dir-jump-file))))
+  :bind
+	("C-x C-d" . consult-dir)
+  (vertico-map
+   :package vertico
+   ("C-x C-d" . consult-dir)
+   ("C-x C-j" . consult-dir-jump-file)))
 
 (leaf embark
   :straight t
@@ -929,7 +936,7 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
   ;; :demand t        ; only necessary if you have the hook below
   ;; ;; if you want to have consult previews as you move around an
   ;; ;; auto-updating embark collect buffer
-  :hook (embark-collect-mode . consult-preview-at-point-mode))
+  :hook (embark-collect-mode-hook . consult-preview-at-point-mode)) ;; TODO doesn't work, fix it.
 
 (leaf wgrep
   :straight t
@@ -1559,12 +1566,12 @@ Notes:
 (leaf citar-org-roam
   :straight t
   :after (citar org-roam)
-  :global-minor-mode citar-org-roam-mode)
+  :global-minor-mode t)
 
 (leaf citar-embark
   :straight t
   :after (citar embark)
-  :global-minor-mode citar-embark-mode
+  :global-minor-mode t
   :defer-config
   (setq citar-at-point-function 'embark-act) ; changes citar-dwim to embark-act
   )
@@ -1664,8 +1671,6 @@ I don't like any 'cuz no fish-style directory abbreviation")
   :straight t
   :doc "FISh-like history autosuggestions"
   :hook eshell-mode-hook)
-
-
 
 (leaf eshell-syntax-highlighting
   :straight t
@@ -1825,7 +1830,7 @@ I don't like any 'cuz no fish-style directory abbreviation")
   :straight t
   :unless (display-graphic-p)
   :after corfu
-  :global-minor-mode corfu-terminal-mode)
+  :global-minor-mode t)
 (leaf kind-icon ;; Icons in corfu!
   :straight t
   :after corfu
@@ -1884,6 +1889,7 @@ I don't like any 'cuz no fish-style directory abbreviation")
 
 (leaf rainbow-mode
   :straight t
+	:blackout t
   :doc "colors hex colors"
   :hook prog-mode-hook)
 
@@ -2061,13 +2067,20 @@ variable `project-local-identifier' to be considered a project."
   ;; python-mode.el is a mess in terms of fucntions to call.
   ;; Having both installed makes it very confusing.
   :straight t
-  :mode "\\.py\\'"
-  :interpreter "python"
   :defer-config
   ;; Remove guess indent python message
   (setq python-indent-guess-indent-offset-verbose nil)
-  (setq python-indent-offset 4)
-  )
+  (setq python-indent-offset 4))
+(leaf python
+  ;; DON'T confuse this with python-mode.el, they are 2 different packages:
+  ;; python.el is built-in and has better integration with emacs, while
+  ;; python-mode.el is a mess in terms of fucntions to call.
+  :straight t
+  :custom
+	(python-shell-interpreter . "python3")
+  ;; Remove guess indent python message
+  (python-indent-guess-indent-offset-verbose . nil)
+  (python-indent-offset . 4))
 ;;; Scheme Programming 
 (leaf geiser-guile
   :straight t
@@ -2332,8 +2345,11 @@ variable `project-local-identifier' to be considered a project."
 (setq +fixed-font "mononoki Nerd Font") 
 (setq +variable-font "ETBembo")
 (setq +CJK-font "LXGW WenKai Mono")
-
-(+font-setup)
+(cond
+ (+asses    (custom-set-faces '(default ((t (:family "mononoki NF"  :foundry "outline" :height 120 :width normal))))))
+ (+durian   (custom-set-faces '(default ((t (:family "mononoki"     :foundry "UKWN"    :height 151 :width normal))))))
+ (+mango    (custom-set-faces '(default ((t (:family "mononoki"     :foundry "UKWN"    :height 113 :width normal))))))
+ (+apexless (+font-setup)))
 
 ;;;###autoload
 (defun +org-font-setup ()
@@ -2405,6 +2421,7 @@ This function is added to the `standard-themes-post-load-hook'."
   )
 
 (leaf minions
+	:disabled t 													;; messing around with turning off minions-mode
   :straight t
   :hook after-init-hook)
 
@@ -2541,7 +2558,7 @@ This function is added to the `standard-themes-post-load-hook'."
 ;;  )
 
 (leaf lsp-mode
-  :when nil
+  :disabled t
   :straight t
   :init
   ;; set prefix for lsp-command-keymap (few alternatives - "C-l", "C-c l"), must be set before lsp-mode loads
@@ -2648,7 +2665,7 @@ This function is added to the `standard-themes-post-load-hook'."
   :straight t
   :after org eval-in-repl)
 (leaf eval-in-repl
-  :straight t)
+:straight t)
 ;; (org-babel-do-load-languages
 ;;  'org-babel-load-languages
 ;;  '((emacs-lisp . t) 
@@ -2731,24 +2748,25 @@ This function is added to the `standard-themes-post-load-hook'."
 ;; 	)
 
 
-;; well, not using it ATM 'cuz eyebrowse-restore-mode keeps telling me while using eyebrowse-restore-save-all the emacs.d/eyebrowse-directory isn't a file
-;; A: because the frame name was nil, it appended the name, which is nil, to the directory, and tried to access it as a file. So just name all your frames before saving.
-(set-frame-parameter nil 'name "Main")
-(leaf eyebrowse
-	:straight t	
-	:hook after-init-hook)
-(leaf eyebrowse-restore
-	:straight (eyebrowse-restore :type git :host github :repo "FrostyX/eyebrowse-restore")
-	:after eyebrowse
-	:global-minor-mode eyebrowse-restore-mode)
+;; ;; well, not using it ATM 'cuz eyebrowse-restore-mode keeps telling me while using eyebrowse-restore-save-all the emacs.d/eyebrowse-directory isn't a file
+;; ;; A: because the frame name was nil, it appended the name, which is nil, to the directory, and tried to access it as a file. So just name all your frames before saving.
+;; ;; nope, still failing...
+;; (set-frame-parameter nil 'name "Main")
+;; (leaf eyebrowse
+;; 	:straight t	
+;; 	:hook after-init-hook)
+;; (leaf eyebrowse-restore
+;; 	:straight (eyebrowse-restore :type git :host github :repo "FrostyX/eyebrowse-restore")
+;; 	:after eyebrowse
+;; 	:global-minor-mode t)
 
 (leaf org-gtasks ; sync google tasks, probably won't use it as google tasks don't support scheduling of tasks, only deadline
-  :straight (org-gtasks :type git :host github :repo "JulienMasson/org-gtasks")
-  :defer-config
-  (org-gtasks-register-account :name "S L"
-                               :directory +healtermon-gtasks-file
-                               :client-id +gclient-id
-                               :client-secret +gclient-secret))
+	:straight (org-gtasks :type git :host github :repo "JulienMasson/org-gtasks")
+	:defer-config
+	(org-gtasks-register-account :name "S L"
+															 :directory +healtermon-gtasks-file
+															 :client-id +gclient-id
+															 :client-secret +gclient-secret))
 
 ;; takes too long to load, idk what to do with it either
 ;; (use-package emojify :config (global-emojify-mode))
@@ -2810,7 +2828,7 @@ This function is added to the `standard-themes-post-load-hook'."
   )
 (leaf nix-haskell-mode
   :straight t
-  :when nil  ; enable for cabal projects and have a look
+  :disabled t  ; enable for cabal projects and have a look
   :after (nix-mode haskell-mode)
   :hook haskell-mode)
 
@@ -2854,7 +2872,7 @@ This function is added to the `standard-themes-post-load-hook'."
   ;; (rust-question-mark-face . ((t (:inherit font-lock-builtin-face :foreground "#ff0000" :weight bold))))
   )
 (leaf rustic
-  :when nil ;; in the name of speed
+  :disabled t ;; in the name of speed
   :straight t
   ;; from https://github.com/patrickt/emacs/blob/master/readme.org
   ;; :bind (:map rustic-mode-map
@@ -2911,7 +2929,29 @@ This function is added to the `standard-themes-post-load-hook'."
   :mode ("README\\.md\\'" . gfm-mode)
   :hook (gfm-mode . visual-line-mode)
   :defer-config
-  (setq markdown-command "multimarkdown"))
+  (setq markdown-command "multimarkdown")
+	(setq markdown-fontify-code-blocks-natively t)
+  (setq markdown-hide-urls nil)
+  (custom-set-variables
+   '(markdown-code-lang-modes
+     (append
+      '(("diff" . diff-mode)
+        ("hs" . haskell-mode)
+        ("html" . web-mode)
+        ("ini" . conf-mode)
+        ("js" . web-mode)
+        ("jsx" . web-mode)
+        ("md" . markdown-mode)
+        ("pl6" . raku-mode)
+        ("py" . python-mode)
+        ("rb" . ruby-mode)
+        ("rs" . rustic-mode)
+        ("sqlite3" . sql-mode)
+        ("ts" . web-mode)
+        ("tsx" . web-mode)
+        ("yaml". yaml-mode)
+        ("zsh" . sh-mode))
+      markdown-code-lang-modes))))
 (leaf toml-mode
   :straight t)
 (leaf yaml-mode
@@ -2929,18 +2969,32 @@ This function is added to the `standard-themes-post-load-hook'."
 ;; commented out 'cuz it takes so long to load wtf
 (leaf elm-mode
   :straight t
-  :hook ((elm-mode-hook . elm-format-on-save-mode) ; requires elm-format to be installed(outside of emacs)
-         (elm-mode-hook . elm-indent-mode)))
+  :hook
+	(elm-mode-hook . elm-format-on-save-mode) ; requires elm-format to be installed(outside of emacs)
+  (elm-mode-hook . elm-indent-mode))
 
 (leaf elixir-mode
   :straight t)
 
-;;; custom-set stuff
-(cond
- (+asses    (custom-set-faces '(default ((t (:family "mononoki NF"        :foundry "outline" :height 120 :width normal))))))
- (+durian   (custom-set-faces '(default ((t (:family "mononoki"           :foundry "UKWN"    :height 151 :width normal))))))
- (+mango    (custom-set-faces '(default ((t (:family "mononoki"           :foundry "UKWN"    :height 113 :width normal))))))
- (+apexless (custom-set-faces '(default ((t (:family "mononoki Nerd Font" :foundry "nil"     :height 140))))))) 
+;; lots of languages here in leaf, scala, OCaml, swift, VB, Web-mode, yarn,js,ts-comint,json,yaml,css,nxml,: https://github.com/ncaq/.emacs.d/blob/master/init.el#L797
+(leaf raku-mode
+  :straight t
+  :defer-config
+	(setq raku-indent-offset 2))
+
+(leaf scala-mode
+	:straight t)
+
+(leaf swift-mode
+	:straight t
+	:config
+	(leaf swift-helpful
+    :straight t
+    :after swift-mode
+    :when +apexless
+    :bind
+    (swift-mode-map
+     ([remap lsp-describe-thing-at-point] . swift-helpful))))
 
 ;;; TESTING GROUNDS
 
@@ -3106,7 +3160,6 @@ TODAYP is t when the current agenda view is on today."
 ;;; Julia Programming 
 (leaf julia-mode ; for julia programming, julia-vterm, ob-julia-vterm and julia-mode. Alternatively, also check out julia-repl
   :straight t
-  :mode "\\.jl\\'"
   :interpreter "julia"
   :defer-config
   (setenv "JULIA_NUM_THREADS" "auto") ;; default is 1
@@ -3314,3 +3367,42 @@ I loaded messed up its setup function (eshell-did-you-mean-setup)." ;TODO fix th
 ;;   (when (memq window-system '(mac ns x))
 ;;     (exec-path-from-shell-initialize))
 ;;   )
+
+(leaf pulsar
+	:straight t
+	:global-minor-mode pulsar-global-mode
+	:hook
+	(next-error-hook . pulsar-pulse-line)
+	;; integration with the `consult' package:
+	(consult-after-jump-hook . pulsar-recenter-top)
+	(consult-after-jump-hook . pulsar-reveal-entry)
+
+	;; integration with the built-in `imenu':
+	(imenu-after-jump-hook . pulsar-recenter-top)
+	(imenu-after-jump-hook . pulsar-reveal-entry)
+	:config
+	(add-to-list 'pulsar-pulse-functions #'isearch-repeat) ; idk how to do this?
+	)
+
+;; ;; Commented out 'cuz it's broken, TODO: figure out what's broken, its a nice package and worth it
+;; (leaf volatile-highlights
+;;   :straight t
+;; 	:require t
+;; 	)
+;; (straight-use-package 'volatile-highlights)
+;; (volatile-highlights-mode)
+
+(leaf gcmh
+  :straight t
+  :blackout gcmh
+	:doc "GCMH, the Garbage Collector Magic Hack, changes GC threshold based on user activity"
+  :custom
+  (gcmh-verbose . t) 										;idk why this takes no time to execute
+  :global-minor-mode t
+	)
+
+(leaf plantuml-mode
+  :straight t
+  :custom
+  (plantuml-default-exec-mode . 'jar)
+  (plantuml-jar-path . "~/bin/plantuml.jar")) ; no time to execute?
