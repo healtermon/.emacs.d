@@ -266,29 +266,6 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
   :tag "built-in"
   :global-minor-mode show-paren-mode)
 
-(leaf recentf
-  :straight (recentf :type built-in)
-  :doc "recent files browsing feature"
-  :init
-  ;; (once '(:before after-find-file) ;; 0.05s saved
-  ;;   (setq recentf-max-saved-items 10000
-  ;;         recentf-max-menu-items 10000)
-  ;;   (recentf-mode 1))
-  :config
-  (setq recentf-max-saved-items 10000
-        recentf-max-menu-items 10000)
-  :global-minor-mode recentf-mode ;; 0.05s lag is worth it
-  )
-
-(leaf saveplace
-  :straight (saveplace :type built-in)
-  :doc "Remember and restore the last cursor location of opened files. 10/10 package."
-  :init
-  (setq save-place-forget-unreadable-files t)
-  :global-minor-mode save-place-mode ;; the one-time 0.05s lag is worth it
-  )
-
-
 ;; set buffer to auto-update every 1.0s when the associated file is written to externally
 (setq auto-revert-interval 1.0)
 (global-auto-revert-mode 1)
@@ -525,11 +502,11 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
   ;; global mode that advices `eval-print-last-sexp' to use ipretty-last-sexp instead
   :global-minor-mode ipretty-mode)
 
-(leaf eros 
-  :straight t
-	:doc "Show emacs-lisp eval results in an overlay, CIDER style."
-	;; global mode that remaps eval-last-sexp to eros-eval-last-sexp TODO: I don't think this works with ipretty
-  :global-minor-mode eros-mode)
+;; (leaf eros 
+;;   :straight t
+;; 	:doc "Show emacs-lisp eval results in an overlay, CIDER style."
+;; 	;; global mode that remaps eval-last-sexp to eros-eval-last-sexp TODO: I don't think this works with ipretty
+;;   :global-minor-mode eros-mode)
 
 (leaf string-edit-at-point
   :straight t
@@ -599,17 +576,27 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
   ;; ;; if you want to set your own values
   ;; `(no-littering-etc-directory . ,(expand-file-name "config/" user-emacs-directory))
   ;; `(no-littering-var-directory . ,(expand-file-name "data/" user-emacs-directory))
-  ) 
+  )
+(cl-letf (((symbol-function 'etc)
+           (symbol-function #'no-littering-expand-etc-file-name))
+          ((symbol-function 'var)
+           (symbol-function #'no-littering-expand-var-file-name)))
+  (setq xenops-cache-directory		(var "xenops/cache/")) ;; stores SVGs
+	;; (setq xenops-image-directory (var "xenops/image/")) ;; the images stored are providing the latex document, so idk whether to set this as default
+	(setq pdf-view-restore-filename (var "pdf-view-restore.eld")) ;; eld, original default-name is .pdf-view-restore
+	(setq lui-logging-directory			(var "lui-log/"))
+	(setq eyebrowse-restore-dir			(var "eyebrowse-restore/"))
+	(setq tabspaces-session-file		(var "tabspaces-session.el"))
+	)
 ;; (defvar +backup-file-dir              (concat +emacs-dir "backups/"))
-(defvar +pdf-view-restore-filename    (concat +emacs-dir ".pdf-view-restore"))
+;; (defvar +pdf-view-restore-filename    (concat +emacs-dir ".pdf-view-restore"))
 (defvar +bibliography-directory       (concat +stuff-dir "notes/bib/references.bib"))
-(defvar +zotero-styles-directory      (concat +stuff-dir "Zotero/styles/") )
+(defvar +zotero-styles-directory      (concat +stuff-dir "Zotero/styles/"))
 (defvar +healtermon-gcal-file         (concat +stuff-dir "notes/calendars/gcal.org") "healtermon@gmail.com main calendar") ;; i'll elogate the names if variety of files expands
 (defvar +healtermon-gtasks-file       (concat +stuff-dir "notes/tasks/gtasks.org")   "healtermon@gmail.com \"My Tasks\" tasklist")
 (defvar +org-roam-dir                 (concat +stuff-dir "notes/zk/"))
 (defvar +org-download-image-directory (concat +stuff-dir "notes/zk/p/"))
 (defvar +org-roam-dailies-directory "daily/" "diary directory relative to org-roam-directory")
-;; (setq xenops-cache-directory )
 
 (when +apexless
   ;; (load (concat +lisp-dir "funcs.el"))
@@ -674,7 +661,27 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
     (switch-to-buffer-other-window buf))) 
 
 ;;; The rest of Default Configuration
+(leaf recentf
+  :straight (recentf :type built-in)
+  :doc "recent files browsing feature"
+  :init
+  ;; (once '(:before after-find-file) ;; 0.05s saved
+  ;;   (setq recentf-max-saved-items 10000
+  ;;         recentf-max-menu-items 10000)
+  ;;   (recentf-mode 1))
+  :config
+  (setq recentf-max-saved-items 10000
+        recentf-max-menu-items 10000)
+  :global-minor-mode recentf-mode ;; 0.05s lag is worth it
+  )
 
+(leaf saveplace
+  :straight (saveplace :type built-in)
+  :doc "Remember and restore the last cursor location of opened files. 10/10 package."
+  :init
+  (setq save-place-forget-unreadable-files t)
+  :global-minor-mode save-place-mode ;; the one-time 0.05s lag is worth it
+  )
 
 (leaf time
   :straight (time :type built-in)
@@ -1397,8 +1404,9 @@ Notes:
   (org-roam-ui-update-on-save . t)
   (org-roam-ui-open-on-start . t))
 ;;; LaTeX related 
-(leaf xenops ;; automatic live math preview that gets out of your way
+(leaf xenops
   :straight t
+	:doc "automatic live math preview that gets out of your way"
   :hook
   latex-mode-hook
   LaTeX-mode-hook
@@ -2163,7 +2171,7 @@ variable `project-local-identifier' to be considered a project."
   (setq circe-format-server-topic "*** Topic change by {userhost}: {topic-diff}") ;; topic change diff
   ;; enable logging of chats
   (load "lui-logging" nil t)
-  (setq lui-logging-directory "~/.emacs.d/.luilogs")
+  ;; (setq lui-logging-directory "~/.emacs.d/.luilogs")
   (enable-lui-logging-globally)
   ;; enable coloring of nicknames
   (require 'circe-color-nicks)
@@ -2211,10 +2219,10 @@ variable `project-local-identifier' to be considered a project."
   (setq erc-image-inline-rescale 300)
   (add-to-list 'erc-modules 'image))
 
-
-
 (leaf telega
   :doc "GOATed Telegram Client"
+	;; 59464c3 is the latest commit that supports TDLib 1.8.8 (what I have ATM from homebrew tdlib HEAD-d581e04)
+	;; just go magit-checkout that commit and (straight-rebuild-package "telega")
   :straight t
   :setq
   ;; has to be set before calling telega command, can be after loading telega.el
@@ -2651,72 +2659,74 @@ This function is added to the `standard-themes-post-load-hook'."
 ;;   ;; sessions
 ;;   (tabspaces-session t)
 ;;   (tabspaces-session-auto-restore t)
-;;  :init
+;; 	:init
 
-;;  (defun +tabspace-setup ()
-;;    "Set up tabspace at startup."
-;;    ;; Add *Messages* and *splash* to Tab `Home'
-;;    (tabspaces-mode 1)
-;;    (progn
-;;      (tab-bar-rename-tab "Home")
-;;      (when (get-buffer "*Messages*")
-;;        (set-frame-parameter nil
-;;                             'buffer-list
-;;                             (cons (get-buffer "*Messages*")
-;;                                   (frame-parameter nil 'buffer-list))))
-;;      (when (get-buffer "*splash*")
-;;        (set-frame-parameter nil
-;;                             'buffer-list
-;;                             (cons (get-buffer "*splash*")
-;;                                   (frame-parameter nil 'buffer-list))))))
+;; 	(defun +tabspace-setup ()
+;; 		"Set up tabspace at startup."
+;; 		;; Add *Messages* and *splash* to Tab `Home'
+;; 		(tabspaces-mode 1)
+;; 		(progn
+;; 			(tab-bar-rename-tab "Home")
+;; 			(when (get-buffer "*Messages*")
+;; 				(set-frame-parameter nil
+;;                              'buffer-list
+;;                              (cons (get-buffer "*Messages*")
+;;                                    (frame-parameter nil 'buffer-list))))
+;; 			(when (get-buffer "*splash*")
+;; 				(set-frame-parameter nil
+;;                              'buffer-list
+;;                              (cons (get-buffer "*splash*")
+;;                                    (frame-parameter nil 'buffer-list))))))
 
-;;  :config
-;;  ;; Filter Buffers for Consult-Buffer
-;;  (with-eval-after-load 'consult
-;;    ;; hide full buffer list (still available with "b" prefix)
-;;    (consult-customize consult--source-buffer :hidden t :default nil)
-;;    ;; set consult-workspace buffer list
-;;    (defvar consult--source-workspace
-;;      (list :name     "Workspace Buffers"
-;;            :narrow   ?w
-;;            :history  'buffer-name-history
-;;            :category 'buffer
-;;            :state    #'consult--buffer-state
-;;            :default  t
-;;            :items    (lambda () (consult--buffer-query
-;;                                  :predicate #'tabspaces--local-buffer-p
-;;                                  :sort 'visibility
-;;                                  :as #'buffer-name)))
+;; 	:config
+;; 	;; Filter Buffers for Consult-Buffer
+;; 	(with-eval-after-load 'consult
+;; 		;; hide full buffer list (still available with "b" prefix)
+;; 		(consult-customize consult--source-buffer :hidden t :default nil)
+;; 		;; set consult-workspace buffer list
+;; 		(defvar consult--source-workspace
+;; 			(list :name     "Workspace Buffers"
+;; 						:narrow   ?w
+;; 						:history  'buffer-name-history
+;; 						:category 'buffer
+;; 						:state    #'consult--buffer-state
+;; 						:default  t
+;; 						:items    (lambda () (consult--buffer-query
+;;                              :predicate #'tabspaces--local-buffer-p
+;;                              :sort 'visibility
+;;                              :as #'buffer-name)))
 
-;;      "Set workspace buffer list for consult-buffer.")
-;;    (add-to-list 'consult-buffer-sources 'consult--source-workspace))
+;; 			"Set workspace buffer list for consult-buffer.")
+;; 		(add-to-list 'consult-buffer-sources 'consult--source-workspace))
 
-;;  ;; ya know this can turn tabspace integration off but not back on lmao
-;;  (defun +consult-tabspaces ()
-;;    "Deactivate isolated buffers when not using tabspaces."
-;;    (require 'consult)
-;;    (cond (tabspaces-mode
-;;           ;; hide full buffer list (still available with "b")
-;;           (consult-customize consult--source-buffer :hidden t :default nil)
-;;           (add-to-list 'consult-buffer-sources 'consult--source-workspace))
-;;          (t
-;;           ;; reset consult-buffer to show all buffers 
-;;           (consult-customize consult--source-buffer :hidden nil :default t)
-;;           (setq consult-buffer-sources (remove #'consult--source-workspace consult-buffer-sources)))))
+;; 	;; ya know this can turn tabspace integration off but not back on lmao
+;; 	(defun +consult-tabspaces ()
+;; 		"Deactivate isolated buffers when not using tabspaces."
+;; 		(require 'consult)
+;; 		(cond (tabspaces-mode
+;;            ;; hide full buffer list (still available with "b")
+;;            (consult-customize consult--source-buffer :hidden t :default nil)
+;;            (add-to-list 'consult-buffer-sources 'consult--source-workspace))
+;; 					(t
+;;            ;; reset consult-buffer to show all buffers 
+;;            (consult-customize consult--source-buffer :hidden nil :default t)
+;;            (setq consult-buffer-sources (remove #'consult--source-workspace consult-buffer-sources)))))
 
-;;  (add-hook 'tabspaces-mode-hook #'+consult-tabspaces)
+;; 	(add-hook 'tabspaces-mode-hook #'+consult-tabspaces)
 
-;;  )
+;; 	)
 
 
-;; ;; well, not using it ATM 'cuz eyebrowse-restore-mode keeps telling me while using eyebrowse-restore-save-all the emacs.d/eyebrowse-directory isn't a file
-;; (set-frame-parameter nil 'name "Main")
-;; (use-package eyebrowse
-;;   :hook (after-init . eyebrowse-mode))
-;; (use-package eyebrowse-restore
-;;   :straight (:type git :host github :repo "FrostyX/eyebrowse-restore")
-;;   :after eyebrowse
-;;   :config (eyebrowse-restore-mode))
+;; well, not using it ATM 'cuz eyebrowse-restore-mode keeps telling me while using eyebrowse-restore-save-all the emacs.d/eyebrowse-directory isn't a file
+;; A: because the frame name was nil, it appended the name, which is nil, to the directory, and tried to access it as a file. So just name all your frames before saving.
+(set-frame-parameter nil 'name "Main")
+(leaf eyebrowse
+	:straight t	
+	:hook after-init-hook)
+(leaf eyebrowse-restore
+	:straight (eyebrowse-restore :type git :host github :repo "FrostyX/eyebrowse-restore")
+	:after eyebrowse
+	:global-minor-mode eyebrowse-restore-mode)
 
 (leaf org-gtasks ; sync google tasks, probably won't use it as google tasks don't support scheduling of tasks, only deadline
   :straight (org-gtasks :type git :host github :repo "JulienMasson/org-gtasks")
