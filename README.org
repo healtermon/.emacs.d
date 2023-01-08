@@ -1,6 +1,11 @@
 * My Emacs Config
 Welcome to my emacs setup! Sorry it's not literate, and always in a mess, but hopefully it helps!
 
+This config was sorted in least to most likely to break... as I test stuff with my init.el and restart often.
+I use hs-minor-mode(code-folding) and parentheses and outli-mode to sort and view this config, so if you don't use them, good luck!
+I use emacs-mac, so there's mac-win.el being run before startup to help me with configuration too!
+Xah-fly-keys sets some modes as well, so I didn't set them.
+
 ** Main Features
 package manager:
 - straight

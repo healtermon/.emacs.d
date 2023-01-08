@@ -77,12 +77,9 @@
 ;; - persp-mode, workspace manager
 ;; - dumb-jump, for when u don't have lsp and want to jump to definitions
 ;; - undo-propose, stage undos in a separate buffer
-;;; Intro to Config
-;; This config is sorted in least to most likely to break... as I test stuff with my init.el and restart often.
-;; I use hs-minor-mode(code-folding) and parentheses and outli-mode to sort and view this config, so if you don't use them, good luck!
-;; I use emacs-mac, so there's mac-win.el being run before startup to help me with configuration too!
 nil
-;;; Function & Variable Definitions
+;;; Debugging
+;; idk where to put this, here will do.
 (setq +init-file-debug t)
 (setq debug-on-error nil)
 (if +init-file-debug
@@ -98,6 +95,124 @@ nil
         debug-on-error nil)
   )
 ;; (setq force-load-messages t)
+
+;;; Package Manager
+;; Bootstrap `straight.el' package manager
+;; I copied alexlugit's neatened-up bootstrap code version 6 at https://github.com/alexluigit/emacs-grandview/blob/master/init.el
+(setq straight-use-package-by-default nil ; makes each use-package form also invoke straight.el to install the package, unless otherwise specified
+      straight-vc-git-default-clone-depth 1
+      straight-check-for-modifications '(check-on-save find-when-checking) ;; speeds up straight initialisation
+      straight-repository-branch "develop"
+      straight-hosts '((github "github.com" ".git")
+                       (gitlab "gitlab.com" ".git")
+                       (sourcehut "git.sr.ht" "") ; Apparently only works without the ".git". less confusing for git newbies, more confusing for experts!
+                       (bitbucket "bitbucket.com" ".git")
+                       (codeberg "codeberg.org" ".git")))
+(let ((bootstrap (locate-user-emacs-file "straight/repos/straight.el/bootstrap.el"))
+      (script "https://raw.githubusercontent.com/raxod502/straight.el/develop/install.el")
+      (file-name-handler-alist nil))
+  ;; modified straight bootstrap code, initialise straight
+  (unless (file-exists-p bootstrap)
+    (with-current-buffer (url-retrieve-synchronously script 'silent 'inhibit-cookies)
+      (goto-char (point-max)) (eval-print-last-sexp)))
+  (load bootstrap nil 'nomessage)
+
+  ;; notes on straight:
+  ;; it's used like (straight-use-package '(name :keyword keywordval ...)) where name is the feature ; found by going into the code and seeing the name provided in the file by (provide 'name)
+  )
+
+;;; Configuration Macros
+(straight-use-package 'leaf)
+(leaf leaf
+  :doc
+  "Leaner, Better-Documented & Easier-To-Extend `use-package'. Philosophy is to be clear about everything, base package is minimalistic.
+- list of configs to refer to: https://github.com/conao3/leaf.el/issues/306
+- using custom seems to load package at init time, not after deferring... thank god it's easy to change the block to setq
+- you either use :defer-config or :config. :defer-config when there's no other thing activating deferring, and :config otherwise
+- REMEMBER TO ADD :straight t. REMEMBER TO ADD :straight t. REMEMBER TO ADD :straight t. REMEMBER TO ADD :straight t
+- Understanding :pkg-map :package pkg in leaf-keys, think of the distribution of keys: defined at one place, pointed to everywhere else. All file-related config goes in one leaf node.
+  read with the idea of wanting to lazy-require packages:
+  in your init file, the packages are sequentially evaluated. For keymaps to evaluate to valid values, the interpreter should allow you to assign or set functions to void things.
+  However, this is emacs lisp; obviously not the case. How then? by creating dummy variables to bind to like function prototypes in c, combined with the autoloading by the package
+  manager, you can group relevant parts of your config together.
+
+IMMEDIATE   |:DEFERRED
+:preface     |:preface
+             |DECLARATION
+:conditional |:conditional
+:bind        |:bind
+:init        |:init              
+:require     |
+:config      |:config
+            |LIBRARY-LOADED  
+            |:defer-config       
+- I realised there's multiple ways of hooking... eval-after-load, mode-hook, add-advice, ...
+
+
+Comparison to use-package (that are not on github)
+= it seems it is not really clearer all-around, just different
++ you feel like you are making a tree
++ the :if  doesn't come after loading the package with :straight or :ensure like in use-package, it comes BEFORE so you don't have to wrap the whole use-package macro in a when when you want to conditionally add packages to load-path
+- no keyword to customize variables after eval of package that are meant to be customized take less time to set if , but it'll do it at init time which takes a lot of time so nah...
++ :custom and :setq family support backquote-commans syntax
+= less parens for :hook, but need to type -hook which is OK, that part fucked me over so many times in use-package
+"
+  :config
+  (leaf leaf-keywords
+    :doc "provides more keywords for base leaf package for easier configuration"
+    :preface
+    ;; only after installing this can we make this neater
+    (straight-use-package 'leaf-keywords)
+    :config
+    (leaf-keywords-init))
+	(leaf leaf-convert
+		:straight t
+		:doc "converts to leaf any sexp passed to it, doesn't work perfectly when converting bind-keys->leaf-keys"
+		)
+	(leaf leaf-tree
+		:straight t
+		:defer-config
+		(setq imenu-list-size 30
+					imenu-list-position 'left))
+	)
+(leaf once
+  :straight (once :type git :host github :repo "emacs-magus/once")
+  :doc "more configuration macros, yay!")
+
+(leaf use-package
+  :straight t
+  :doc "macros to neaten configuration. I keep it around to slowly convert my init file and try others' code blocks.
+If you wanna expand use-package macros, if there are no errors in the config, you can set use-package-expand-minimally to t to get a much more readable expansion"
+  :config
+  (setq use-package-hook-name-suffix nil))
+(leaf bind-key
+  :straight t
+  :doc "macros for binding keys, comes with use-package too")
+
+(leaf setup
+  "more configuration macros, yay!"
+  :straight t)
+
+;;; Benchmarking
+;; must be put asap after use-package for most complete benchmark. Look at its functions named benchmark-init/...
+(leaf benchmark-init
+  :straight t
+  :require t
+  ;; To disable collection of benchmark data after init is done.
+  :hook (after-init-hook . benchmark-init/deactivate))
+
+(leaf esup
+  :straight t
+  :doc "Emacs Start UP"
+  :config
+  ;; Work around a bug where esup tries to step into the byte-compiled
+  ;; version of `cl-lib', and fails horribly.
+  (setq esup-depth 0))
+;;; Function & Variable Definitions
+;; (leaf no-littering
+;;   :straight t
+;;   :require t
+;;   :doc "sets the data and temp dirs of many packages to /etc and /var in `user-emacs-directory'.")
 
 (defun +system-name? (name-string)
   (string= system-name name-string))
@@ -123,6 +238,7 @@ nil
 (defvar +org-roam-dir                 (concat +stuff-dir "notes/zk/"))
 (defvar +org-download-image-directory (concat +stuff-dir "notes/zk/p/"))
 (defvar +org-roam-dailies-directory "daily/" "diary directory relative to org-roam-directory")
+;; (setq xenops-cache-directory )
 
 (when +apexless
   ;; (load (concat +lisp-dir "funcs.el"))
@@ -194,23 +310,28 @@ nil
 (setq system-time-locale "C") ; Make sure that the weekdays in the time stamps of your Org mode files and agenda appear in English.
 (setq use-dialog-box nil)
 (setq-default
- fill-column 80                        ; Set width for automatic line breaks
- uniquify-buffer-name-style 'forward   ; Uniquify buffer names
- window-combination-resize t           ; Resize windows proportionally
- x-stretch-cursor t                    ; Stretch cursor to the glyph width
- indent-tabs-mode nil                  ; use spaces instead of tabs, this is 'cuz github fucked display of this file
- tab-width 2                          ; Tab width of 2 is compact and readable
- c-basic-offset 4                     ; but not in C
+ fill-column 80                      ; Set width for automatic line breaks
+ uniquify-buffer-name-style 'forward ; Uniquify buffer names
+ window-combination-resize t         ; Resize windows proportionally
+ x-stretch-cursor t                  ; Stretch cursor to the glyph width
  )
 
 (setq large-file-warning-threshold (* 128 1024 1024)) ;; 128 MebiBytes
-(set-language-environment "UTF-8"); fixes the "haskell process has died" error somehow
+
+(set-language-environment "UTF-8") ; fixes the "haskell process has died" error somehow
 (prefer-coding-system 'utf-8)
 (set-default-coding-systems 'utf-8)   ; Default to utf-8 encoding
 (set-default-coding-systems 'utf-8)
 (set-terminal-coding-system 'utf-8)
 (set-keyboard-coding-system 'utf-8)
 (setq selection-coding-system 'utf-8)
+
+;; enable some disabled commands
+(put 'set-goal-column 'disabled nil)
+(put 'narrow-to-region 'disabled nil)
+(put 'upcase-region 'disabled nil)
+(put 'downcase-region 'disabled nil)
+(put 'scroll-left 'disabled nil)      ; actually moves left the on-screen words, scroll-right brings u back to column 0.
 
 ;; from https://bytemeta.vip/index.php/repo/alexluigit/emacs-grandview
 (setq-default bidi-display-reordering 'left-to-right) ;; we don't use right-to-left languages/fonts, YET
@@ -228,26 +349,59 @@ nil
 (setq hscroll-margin 1)
 (setq scroll-preserve-screen-position 1)
 
-;; enable some disabled commands
-(put 'set-goal-column 'disabled nil)
-(put 'narrow-to-region 'disabled nil)
-(put 'upcase-region 'disabled nil)
-(put 'downcase-region 'disabled nil)
-(put 'scroll-left 'disabled nil)      ; actually moves left the on-screen words, scroll-right brings u back to column 0.
+(setq-default
+ tab-width 2                            ; Tab width of 2 is compact and readable
+ c-basic-offset 4                       ; but not in C
+ )
+(setq indent-tabs-mode nil) ; Toggle whether indentation can insert TAB characters
 
-;;Put all backups in one directory so emacs doesn't strew them
-(setq backup-directory-alist `(("." . ,+backup-file-dir)))
-
-;;Put all autosave files like #filename.whatever# in the same directory
-(setq auto-save-file-name-transforms `((".*" ,+backup-file-dir t)))
-
-(menu-bar-mode -1)
-(when (fboundp 'scroll-bar-mode) (scroll-bar-mode -1)) ;; scroll bar not useful as its behaviour is weird(too lazy to learn), and there's a percentage to show vertical position so...
-(when (fboundp 'tool-bar-mode) (tool-bar-mode -1))
 
 (blink-cursor-mode -1)
-(show-paren-mode 1)
+(leaf paren
+  :tag "built-in"
+  :global-minor-mode show-paren-mode)
+
+(leaf time
+  :straight (time :type built-in)
+  :doc "display of time, date, load numbers, name of mail inbox with new mail, etc..."
+  :tag "built-in"
+  :unless +apexless ; apexless has time permanently displayed so you don't need this
+  :setq
+  (display-time-default-load-average . nil) ; Don't display load average
+  (display-time-24hr-format . t)            ; use hh:mm format instead
+  :config
+  (display-time-mode t))
+
 (column-number-mode 1)  
+
+;;Put all autosave files like #filename.whatever# in the same directory
+(setq auto-save-file-name-transforms `((,(rx (zero-or-more not-newline)) ,+backup-file-dir t)))
+
+;;Put all backups like filename.whatever~ in one directory so emacs doesn't strew them
+(setq backup-directory-alist `((,(rx (zero-or-more not-newline)) . ,+backup-file-dir)))
+
+(leaf recentf
+  :straight (recentf :type built-in)
+  :doc "recent files browsing feature"
+  :init
+  ;; (once '(:before after-find-file) ;; 0.05s saved
+  ;;   (setq recentf-max-saved-items 10000
+  ;;         recentf-max-menu-items 10000)
+  ;;   (recentf-mode 1))
+  :config
+  (setq recentf-max-saved-items 10000
+        recentf-max-menu-items 10000)
+  :global-minor-mode recentf-mode ;; 0.05s lag is worth it
+  )
+
+(leaf saveplace
+  :straight (saveplace :type built-in)
+  :doc "Remember and restore the last cursor location of opened files. 10/10 package."
+  :init
+  (setq save-place-forget-unreadable-files t)
+  :global-minor-mode save-place-mode ;; the one-time 0.05s lag is worth it
+  )
+
 
 ;; set buffer to auto-update when the associated file is written to externally, and set it to update in 1s
 ;; (customize-set-variable 'auto-revert-interval 1)
@@ -256,7 +410,6 @@ nil
 
 (setq enable-recursive-minibuffers t) ; enables more than 1 minibuffer to be available at once
 (minibuffer-depth-indicate-mode 1) ; shows [minibuffer-depth] at left of the echo area when depth >1
-
 
 
 ;; in isearch, highlight the line u are currently on 'cuz I tend to spend quite some time searching for it; it jumps all over the screen
@@ -277,111 +430,7 @@ nil
       (t (toggle-frame-fullscreen)))
 
 
-;;; Package Manager
-;; Bootstrap `straight.el' package manager
-;; I copied alexlugit's neatened-up bootstrap code version 6 at https://github.com/alexluigit/emacs-grandview/blob/master/init.el
-(setq straight-use-package-by-default nil ; makes each use-package form also invoke straight.el to install the package, unless otherwise specified
-      straight-vc-git-default-clone-depth 1
-      straight-check-for-modifications '(check-on-save find-when-checking) ;; speeds up straight initialisation
-      straight-repository-branch "develop"
-      straight-hosts '((github "github.com" ".git")
-                       (gitlab "gitlab.com" ".git")
-                       (sourcehut "git.sr.ht" "") ; Apparently only works without the ".git". less confusing for git newbies, more confusing for experts!
-                       (bitbucket "bitbucket.com" ".git")
-                       (codeberg "codeberg.org" ".git")))
-(let ((bootstrap (locate-user-emacs-file "straight/repos/straight.el/bootstrap.el"))
-      (script "https://raw.githubusercontent.com/raxod502/straight.el/develop/install.el")
-      (file-name-handler-alist nil))
-  ;; modified straight bootstrap code, initialise straight
-  (unless (file-exists-p bootstrap)
-    (with-current-buffer (url-retrieve-synchronously script 'silent 'inhibit-cookies)
-      (goto-char (point-max)) (eval-print-last-sexp)))
-  (load bootstrap nil 'nomessage)
-
-  ;; notes on straight:
-  ;; it's used like (straight-use-package '(name :keyword keywordval ...)) where name is the feature ; found by going into the code and seeing the name provided in the file by (provide 'name)
-  )
-
-;;; Configuration Macros
-(straight-use-package 'leaf)
-(leaf leaf
-  :doc
-  "Leaner, Better-Documented & Easier-To-Extend `use-package'. Philosophy is to be clear about everything, base package is minimalistic.
-- list of configs to refer to: https://github.com/conao3/leaf.el/issues/306
-- using custom seems to load package at init time, not after deferring... thank god it's easy to change the block to setq
-- you either use :defer-config or :config. :defer-config when there's no other thing activating deferring, and :config otherwise
-- REMEMBER TO ADD :straight t. REMEMBER TO ADD :straight t. REMEMBER TO ADD :straight t. REMEMBER TO ADD :straight t
-- Understanding :pkg-map :package pkg in leaf-keys, think of the distribution of keys: defined at one place, pointed to everywhere else. All file-related config goes in one leaf node.
-  read with the idea of wanting to lazy-require packages:
-  in your init file, the packages are sequentially evaluated. For keymaps to evaluate to valid values, the interpreter should allow you to assign or set functions to void things.
-  However, this is emacs lisp; obviously not the case. How then? by creating dummy variables to bind to like function prototypes in c, combined with the autoloading by the package
-  manager, you can group relevant parts of your config together.
-
-IMMEDIATE   |:DEFERRED
-:preface     |:preface
-             |DECLARATION
-:conditional |:conditional
-:bind        |:bind
-:init        |:init              
-:require     |
-:config      |:config
-            |LIBRARY-LOADED  
-            |:defer-config       
-- I realised there's multiple ways of hooking... eval-after-load, mode-hook, add-advice, ...
-
-
-Comparison to use-package (that are not on github)
-= it seems it is not really clearer all-around, just different
-+ you feel like you are making a tree
-+ the :if  doesn't come after loading the package with :straight or :ensure like in use-package, it comes BEFORE so you don't have to wrap the whole use-package macro in a when when you want to conditionally add packages to load-path
-- no keyword to customize variables after eval of package that are meant to be customized take less time to set if , but it'll do it at init time which takes a lot of time so nah...
-+ :custom and :setq family support backquote-commans syntax
-= less parens for :hook, but need to type -hook which is OK, that part fucked me over so many times in use-package
-")
-
-(leaf leaf-keywords
-  :doc "provides more keywords for base leaf package for easier configuration"
-  :preface
-  ;; only after installing this can we make this neater
-  (straight-use-package 'leaf-keywords)
-  :config
-  (leaf-keywords-init))
-
-(leaf once
-  :straight (once :type git :host github :repo "emacs-magus/once")
-  :doc "more configuration macros, yay!")
-
-(leaf use-package
-  :straight t
-  :doc "macros to neaten configuration. I keep it around to slowly convert my init file and try others' code blocks.
-If you wanna expand use-package macros, if there are no errors in the config, you can set use-package-expand-minimally to t to get a much more readable expansion"
-  :config
-  (setq use-package-hook-name-suffix nil)
-  )
-(leaf bind-key
-  :straight t
-  :doc "macros for binding keys, comes with use-package too")
-(leaf setup
-  "more configuration macros, yay!"
-  :straight t)
-;;; Benchmarking
-;; must be put asap after use-package for most complete benchmark. Look at its functions named benchmark-init/...
-(leaf benchmark-init
-  :straight t
-  :require t
-  ;; To disable collection of benchmark data after init is done.
-  :hook (after-init-hook . benchmark-init/deactivate))
-
-(leaf esup
-  :straight t
-  :doc "Emacs Start UP"
-  :config
-  ;; Work around a bug where esup tries to step into the byte-compiled
-  ;; version of `cl-lib', and fails horribly.
-  (setq esup-depth 0))
-
 ;;; essential packages for everyone
-;;;; Init File Editing 
 (leaf crux
   :doc "lots of random useful functions from the emacs Prelude 'distro'. It's up here 'cuz of crux-find-user-init-file"
   :straight t)
@@ -488,49 +537,19 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
                         macrostep))
   (setq lispy-close-quotes-at-end-p t))
 
-(leaf sotlisp ;; TODO: figure out M-RET keybinding clashes
+(leaf sotlisp ;; TODO: figure out M-RET keybinding clashes, and clashes with lispy and xah-fly-keys
   :straight t
   :doc "Speed-Of-Thought, abbrev way of typing elisp"
   :hook (emacs-lisp-mode . speed-of-thought-mode))
 
 
-(leaf which-key :straight t :init (which-key-mode))
-
-(leaf time
-  :doc "display of time, date, load numbers, name of mail inbox with new mail, etc..."
-  :unless +apexless ; apexless has time permanently displayed so you don't need this
-  :straight (time :type built-in)
-  :setq
-  (display-time-default-load-average . nil) ; Don't display load average
-  (display-time-24hr-format . t)            ; use hh:mm format instead
-  :config
-  (display-time-mode t))
-
-(leaf recentf
-  :straight (recentf :type built-in)
-  :doc "recent files browsing feature"
-  :init
-  ;; (once '(:before after-find-file) ;; 0.05s saved
-  ;;   (setq recentf-max-saved-items 10000
-  ;;         recentf-max-menu-items 10000)
-  ;;   (recentf-mode 1))
-  :config
-  (setq recentf-max-saved-items 10000
-        recentf-max-menu-items 10000)
-  :global-minor-mode recentf-mode ;; 0.05s lag is worth it
-  )
-
-(leaf saveplace
-  :straight (saveplace :type built-in)
-  :doc "Remember and restore the last cursor location of opened files. 10/10 package."
-  :init
-  (setq save-place-forget-unreadable-files t)
-  :global-minor-mode save-place-mode ;; the one-time 0.05s lag is worth it
-  )
+(leaf which-key
+  :straight t
+  :doc "shows a popup with key bindings and functions associated with them"
+  :global-minor-mode which-key-mode)
 
 (leaf *history-setting
   :setq
-  (vertico-sort-history-length-alpha . 10000)
   (history-delete-duplicates . t))
 (leaf savehist
   :straight (savehist :type built-in)
@@ -552,7 +571,14 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
   :defer-config
   (setq vertico-resize t)
   (setq vertico-cycle t)
-  (setq vertico-count (if +termux 10 20)))
+  (setq vertico-count (if +termux 10 20))
+
+  ;; Sort directories before files. Copied from Vertico README.
+  (defun +sort-directories-first (files)
+    (setq files (vertico-sort-history-length-alpha files))
+    (nconc (seq-filter (lambda (x) (string-suffix-p "/" x)) files)
+           (seq-remove (lambda (x) (string-suffix-p "/" x)) files)))
+  )
 
 (leaf orderless ;; a completion style
   :straight t
@@ -772,14 +798,6 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
 	       ("C-c C-p" . (lambda () (interactive) (outline-back-to-heading))))
   :hook ((prog-mode-hook text-mode-hook) . outli-mode))
 
-(leaf leaf-convert
-  :doc "converts to leaf any sexp passed to it, doesn't work perfectly when converting bind-keys->leaf-keys"
-  :straight t)
-(leaf leaf-tree
-  :straight t
-  :defer-config
-  (setq imenu-list-size 30
-        imenu-list-position 'left))
 
 ;;; Elisp Programming
 ;; in Emacs, elisp programming is more important than other sorts of programming,
@@ -1023,6 +1041,7 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
   :hook
   (dired-mode-hook . dired-omit-mode)
   :config
+  (setq dired-omit-verbose nil)
   ;; matches an empty line, or one or more dots.
   (setq dired-omit-files (concat dired-omit-files (rx (or "" (seq line-start "." (zero-or-more ".") line-end)))))
   ;; ;; alternative to above; Make dired-omit-mode hide all "dotfiles"
@@ -3263,4 +3282,3 @@ I loaded messed up its setup function (eshell-did-you-mean-setup)." ;TODO fix th
 ;;   (when (memq window-system '(mac ns x))
 ;;     (exec-path-from-shell-initialize))
 ;;   )
-

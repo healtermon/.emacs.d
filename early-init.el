@@ -85,6 +85,15 @@
 (defvar +variable-font "Sarasa Mono SC")  ; variable-pitch font
 (defvar +CJK-font "LXGW WenKai Mono") ; Chinese, Japanese, Korean characters
 
+;; don't need 'em UI, disable here to hopefully start-up faster, replaces code below which was in init.el
+(push '(tool-bar-lines . 0) default-frame-alist)
+(push '(menu-bar-lines . 0) default-frame-alist)
+(push '(vertical-scroll-bars) default-frame-alist)
+;; (menu-bar-mode -1)
+;; (when (fboundp 'scroll-bar-mode) (scroll-bar-mode -1)) ;; scroll bar not useful as its behaviour is weird(too lazy to learn), and there's a percentage to show vertical position so...
+;; (when (fboundp 'tool-bar-mode) (tool-bar-mode -1))
+
+
 ;; Local Variables:
 ;; no-byte-compile: t
 ;; End:
