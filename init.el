@@ -2,6 +2,7 @@
 ;;; Notes
 ;;;; keybindings to remember
 ;; http://xahlee.info/emacs/emacs/ergoemacs_and_paredit.html
+;; p = insert space before cursor
 ;; save-buffer = SPC ;
 ;; xah-close-current-buffer(C-w) = SPC u
 ;; find-file = SPC i e
@@ -27,8 +28,7 @@
 ;; - dwim-shell-command
 ;; - org-bookmark-heading
 ;; - org-visibility
-;; - ws-butler
-;; - topsy
+;; - ws-butler, WhiteSpace butler, unobtrusive whitespace-trimming
 ;; - with-editor
 ;; - scratch
 ;; - so-long
@@ -69,6 +69,9 @@
 ;; - log-interaction-mode for presenting
 ;; - centaur tabs, nice-looking tabs
 ;; - zotra, zotero translators without using zotera client
+;; - hammy, programmable timers!
+;; - vulpea, org and org-roam functions to help with programming org-roam-related stuff https://github.com/d12frosted/vulpea
+;; - winner-mode, allows you to undo and redo changes to window configurations
 
 ;;;;; Cool packages that I want to install later on
 ;; - persp-mode, workspace manager
@@ -76,6 +79,7 @@
 ;; - undo-propose, stage undos in a separate buffer
 ;; - volatile-highlights, highlights editing part when yanking
 ;; - pulse.el, to pulse regions when editing. idk for now what is "download through CVS": https://www.emacswiki.org/emacs/PulseRegion, for this https://blog.meain.io/2020/emacs-highlight-yanked or equivalent advice given to functions from Nasy Emacs.
+;; - dogears/bookmark+
 
 nil
 ;;; Config Debugging
@@ -105,7 +109,7 @@ nil
       straight-repository-branch "develop"
       straight-hosts '((github "github.com" ".git")
                        (gitlab "gitlab.com" ".git")
-                       (sourcehut "git.sr.ht" "") ; Apparently only works without the ".git". less confusing for git newbies, more confusing for experts!
+                       (sourcehut "git.sr.ht" "") ; Apparently only works without the ".git". less confusing for git newbies, more confusing for people used to the other sites!
                        (bitbucket "bitbucket.com" ".git")
                        (codeberg "codeberg.org" ".git")))
 (let ((bootstrap (locate-user-emacs-file "straight/repos/straight.el/bootstrap.el"))
@@ -350,8 +354,12 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
    ("<SPC> 1 I" . (lambda () (interactive) (find-file-other-window +user-early-init-file)))
    ("<SPC> 1 t" . (lambda () (interactive) (find-file-other-window (concat +org-roam-dir "20230105103905.org"))))
    ("<SPC> 1 f" . (lambda () (interactive) (find-file-other-window (concat +emacs-dir "lisp/funcs.el"))))
-   ("<SPC> 1 c" . (lambda () (interactive) (require 'calfw) (cfw:open-calendar)))
-   ("<SPC> 1 h" . (lambda () (interactive) (dired "~/stuff/compro/healtermon/"))))
+	 ("<SPC> 1 h" . (lambda () (interactive) (dired-other-window (concat +stuff-dir))))
+   ("<SPC> 1 c" . (lambda () (interactive) (dired-other-window (concat +stuff-dir "compro/healtermon/"))))
+	 ("<SPC> 1 u" . (lambda () (interactive) (dired-other-window (concat +stuff-dir "uni/"))))
+	 ("<SPC> 1 d" . (lambda () (interactive) (dired-other-window (concat "~/Downloads/"))))
+   ("<SPC> 1 l" . (lambda () (interactive) (find-file-other-window (concat +org-roam-dir "life.org"))))
+	 ("<SPC> 2 c" . (lambda () (interactive) (require 'calfw) (cfw:open-calendar))))
   :config
   ;; set-layout required before enabling
   (xah-fly-keys-set-layout (cond ((or +asses +mango) 'colemak-mod-dh)
@@ -575,7 +583,7 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
 ;;;; ELisp Debugging
 ;; see https://github.com/progfolio/.emacs.d/blob/master/init.org#debugging
 
-"stop headliine from getting folded"
+"stop headline from getting folded"
 ;;; Function & Variable Definitions
 (defvar +home-dir nil) ;; will change if it gets more complicated than this, currently unused
 (defvar +emacs-dir (file-truename user-emacs-directory) "user-emacs-directory")
@@ -603,6 +611,7 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
 	(setq lui-logging-directory			(var "lui-log/"))
 	(setq eyebrowse-restore-dir			(var "eyebrowse-restore/"))
 	(setq tabspaces-session-file		(var "tabspaces-session.el"))
+	(setq telega-temp-dir (var "telega/temp/"))
 	)
 ;; ;; commented out due to no-littering
 
@@ -1050,12 +1059,13 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
   (when +apexless
     (setq dired-use-ls-dired t)
     (setq insert-directory-program "/opt/homebrew/bin/gls")
-    (setq mac-system-move-file-to-trash-use-finder t))
+    (setq mac-system-move-file-to-trash-use-finder t)		;; if this is true and Finder is not open, it'll give an error "move-file-to-trash: Removing old name: Mac error -600"
+		)
   (setq delete-by-moving-to-trash t) 
   (setq find-file-visit-truename t) ; follow symlinks when visiting files or directories
   )
 
-(leaf dired
+(leaf dired  
   :straight
   (dired :type built-in)
   :config
@@ -1303,6 +1313,11 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
       :if-new (file+head "%<%Y%m%d%H%M%S>.org"
                          "#+title: ${title}\n")
       :unnarrowed t)
+		 ("t" "and with tags header ${slug}" plain
+			"%?"
+			:if-new (file+head "%<%Y%m%d%H%M%S>.org"
+												 "#+filetags: \n#+title: ${title}\n")
+			:unnarrowed t)
      ("c" "contacts" plain ; why I put contacts here instead of org-contacts is so that I won't read about another person when searching someone, as org-contacts makes you keep it all in 1 file. I can replicate search with ripgrep at certain file.
       "%?"
       :if-new (file+head "contacts/%<%Y%m%d%H%M%S>.org"
@@ -1781,6 +1796,8 @@ I don't like any 'cuz no fish-style directory abbreviation")
                                     corfu-auto nil ;; disable automatic activation of popup
                                     )
                         (corfu-mode 1)))
+	(org-mode-hook . (lambda ()
+										 (setq-local corfu-auto-prefix 2)))
   :bind (corfu-map
          ;; unfuck the mappings check corfu-mode-map & (defvar corfu-map ...) in corfu.el
          ([remap beginning-of-buffer])
@@ -1801,8 +1818,8 @@ I don't like any 'cuz no fish-style directory abbreviation")
   :setq
   (corfu-scroll-margin . 5) ;; Use scroll margin
   (corfu-auto . t)          ;; Enable/disable auto completion
-  (corfu-auto-delay . 0)    ; seconds after u type a character that popup appears
-  (corfu-auto-prefix . 1)               ;; number of characters before popup appears
+  (corfu-auto-delay . 0)	 ; seconds after u type a character that popup appears
+  (corfu-auto-prefix . 1)	 ;; number of characters before popup appears
   ;; (corfu-cycle t)                ;; Enable cycling for `corfu-next/previous'
   ;; (corfu-separator ?\s)          ;; Orderless field separator
   ;; (corfu-quit-at-boundary nil)   ;; Never quit at completion boundary
@@ -1880,6 +1897,7 @@ I don't like any 'cuz no fish-style directory abbreviation")
 
 ;;; General Programming 
 ;; HOW TO USE: C-u extended-command devdocs to set new default docset to search, otherwise just search normally with command devdocs-lookup
+
 (leaf devdocs
   :straight t
   :bind ("C-h D" . devdocs-lookup)
@@ -1970,8 +1988,8 @@ I don't like any 'cuz no fish-style directory abbreviation")
   ;; prog-mode-hook
   )
 
-;;; Language Server Protocol(LSP)-related
-;;;; Eglot-related
+;;;; Language Server Protocol(LSP)-related
+;;;;; Eglot-related
 (leaf xref
   :straight t)
 (leaf project
@@ -2060,7 +2078,7 @@ variable `project-local-identifier' to be considered a project."
 (leaf consult-eglot
   :straight t
   :after (consult eglot))
-;;; Python Programming 
+;;;; Python Programming 
 (leaf python
   ;; DON'T confuse this with python-mode.el, they are 2 different packages:
   ;; python.el is built-in and has better integration with emacs, while
@@ -2081,7 +2099,7 @@ variable `project-local-identifier' to be considered a project."
   ;; Remove guess indent python message
   (python-indent-guess-indent-offset-verbose . nil)
   (python-indent-offset . 4))
-;;; Scheme Programming 
+;;;; Scheme Programming 
 (leaf geiser-guile
   :straight t
   :commands geiser-guile)             ; geiser-guile to connect to guile repl!
@@ -2099,7 +2117,7 @@ variable `project-local-identifier' to be considered a project."
   :hook ((geiser-mode-hook
           geiser-repl-mode-hook) . macrostep-geiser-setup))
 
-;;; Common Lisp Programming 
+;;;; Common Lisp Programming 
 (leaf sly
   :straight t
   :init
@@ -2129,7 +2147,7 @@ variable `project-local-identifier' to be considered a project."
       (eros--make-result-overlay (concat output value)
         :where (point)
         :duration eros-eval-result-duration))))
-;;; Ruby Programming 
+;;;; Ruby Programming 
 ;; see professional setup: https://old.reddit.com/r/emacs/comments/xqojo7/emacs_and_rails/iqbh0id/
 ;;; Other-languages Programming
 
@@ -2246,6 +2264,7 @@ variable `project-local-identifier' to be considered a project."
   (setq erc-image-inline-rescale 300)
   (add-to-list 'erc-modules 'image))
 
+;; see https://codeberg.org/jao/elibs/src/branch/main/init.el
 (leaf telega
   :doc "GOATed Telegram Client"
 	;; 59464c3 is the latest commit that supports TDLib 1.8.8 (what I have ATM from homebrew tdlib HEAD-d581e04)
@@ -2253,7 +2272,26 @@ variable `project-local-identifier' to be considered a project."
   :straight t
   :setq
   ;; has to be set before calling telega command, can be after loading telega.el
-  (telega-server-libs-prefix . "/opt/homebrew/Cellar/tdlib/HEAD-d581e04/"))
+  (telega-server-libs-prefix . "/opt/homebrew/Cellar/tdlib/HEAD-d581e04/")
+	(telega-rainbow-color-custom-for . nil)
+	(telega-msg-rainbow-title . nil)
+	(telega-sticker-set-download . t)
+	:setq
+	(telega-chat-show-avatars . nil)
+	(telega-chat-prompt-format . ">> ")
+	(telega-root-show-avatars . nil)
+	(telega-emoji-use-images . nil)
+	(telega-symbol-checkmark . "·")
+	(telega-symbol-heavy-checkmark . "×")
+	(telega-symbol-verified . "*")
+	;; (telega-symbol-horizontal-bar . (propertize "-" 'face 'jao-themes-f00))
+	;; (telega-symbol-vertical-bar . (propertize "| " 'face 'jao-themes-dimm))
+	(telega-mode-line-string-format . '(:eval (telega-mode-line-unread-unmuted)))
+	`(telega-use-images . ,(display-graphic-p))
+	;; `(telega-open-file-function . ,(if (display-graphic-p) #'find-file #'jao--see))
+	`(telega-open-message-as-file . ,(unless (display-graphic-p) '(photo video animation)))
+	:defer-config
+	(telega-mode-line-mode 1))
 
 (leaf google-this
   :straight t
@@ -2421,7 +2459,7 @@ This function is added to the `standard-themes-post-load-hook'."
   )
 
 (leaf minions
-	:disabled t 													;; messing around with turning off minions-mode
+	;; :disabled t 													;; messing around with turning off minions-mode
   :straight t
   :hook after-init-hook)
 
@@ -2996,6 +3034,12 @@ This function is added to the `standard-themes-post-load-hook'."
     (swift-mode-map
      ([remap lsp-describe-thing-at-point] . swift-helpful))))
 
+(leaf plantuml-mode
+  :straight t
+  :custom
+  (plantuml-default-exec-mode . 'jar)
+  (plantuml-jar-path . "~/bin/plantuml.jar")) ; no time to execute?
+
 ;;; TESTING GROUNDS
 
 (leaf burly ;; bookmark window or frame configurations
@@ -3294,9 +3338,6 @@ TODAYP is t when the current agenda view is on today."
   :defer-config
   (setq eat-kill-buffer-on-exit t))
 
-
-
-
 (leaf erefactor ;; how to use?
   :straight t
   :doc "elisp refactoring"
@@ -3304,8 +3345,6 @@ TODAYP is t when the current agenda view is on today."
   ;; highlight local variables
   (emacs-lisp-mode-hook . erefactor-lazy-highlight-turn-on)
   (lisp-interaction-mode-hook . erefactor-lazy-highlight-turn-on))
-
-
 
 (leaf yasnippet-snippets
   :straight t
@@ -3396,13 +3435,45 @@ I loaded messed up its setup function (eshell-did-you-mean-setup)." ;TODO fix th
   :straight t
   :blackout gcmh
 	:doc "GCMH, the Garbage Collector Magic Hack, changes GC threshold based on user activity"
-  :custom
-  (gcmh-verbose . t) 										;idk why this takes no time to execute
+  ;; :custom
+  ;; (gcmh-verbose . t) 										;idk why this takes no time to execute
   :global-minor-mode t
 	)
 
-(leaf plantuml-mode
-  :straight t
-  :custom
-  (plantuml-default-exec-mode . 'jar)
-  (plantuml-jar-path . "~/bin/plantuml.jar")) ; no time to execute?
+
+(leaf pp+
+	:straight t
+	;; :require t
+	)
+
+;; (leaf activity-watch-mode 							;; TODO: figure out what's broken, it's a nice package yet again...
+;; 	:straight t
+;; 	)
+
+(leaf wolfram
+	:straight t
+	:doc "query wolfram alpha and receive its reply in a (non-interactive) buffer."
+	:bind
+	;; (modi-mode-map
+	;;  ("C-x / a" . wolfram-alpha)
+	;;  )
+	:config
+	;; 1. First get a Wolfram ID (or developer account) at
+	;;    https://developer.wolframalpha.com/portal/signin.html
+	;;    Your "Wolfram ID" will be the email you used to sign up for the
+	;;    developer account.
+	;; 2. Once you sign in with the Wolfram ID at
+	;;    https://developer.wolframalpha.com/portal/myapps/, click on "Get an
+	;;    AppID" to get your Wolfram API or AppID.
+	;; 3. Follow the steps where you put in your app name and description, and
+	;;    you will end up with an AppID that looks like "ABCDEF-GHIJKLMNOP",
+	;;    where few of those characters could be numbers too.
+	(setq wolfram-alpha-app-id +wolfram-alpha-app-id)
+	)
+
+(leaf wolfram-mode
+	:straight t
+	:doc "major mode for editing Mathematica text files"
+	)
+
+
