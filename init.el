@@ -41,6 +41,7 @@
 ;; - json-snatcher
 ;; - iedit
 ;; - archive-rpm
+;; - org-block-capf, completion for org blocks with "<" prepended https://github.com/xenodium/org-block-capf
 ;;;;; Packages I'm excited about 
 ;; - Delve, org-roam notes browser, integration with org-roam-ui, just wait and see
 
@@ -72,6 +73,7 @@
 ;; - hammy, programmable timers!
 ;; - vulpea, org and org-roam functions to help with programming org-roam-related stuff https://github.com/d12frosted/vulpea
 ;; - winner-mode, allows you to undo and redo changes to window configurations
+;; - org-modern-indent, makes fringe area indent show properly indented instead of disabled when org-indent is used with org-modern
 
 ;;;;; Cool packages that I want to install later on
 ;; - persp-mode, workspace manager
