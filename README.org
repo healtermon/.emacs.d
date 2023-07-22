@@ -8,7 +8,7 @@ Xah-fly-keys sets some modes as well, so I didn't set them.
 
 ** Main Features
 package manager:
-- straight
+- Elpaca
 configuration macros:
 - leaf (trying to transition to this, mostly done.)
 - once
@@ -18,7 +18,6 @@ configuration macros:
 - early-init.el is for optimisations like disabling loading with package.el so that the init loads faster 
 - init.el is the 1 massive config file. download it and use emacs to browse it!
 - templates is for tempel.el, have a look at the cryptic snippet templates written in lisp data!
-- straight folder contains my lockfiles, I've never used them and I regret it.
 *** I use no-littering
 a package that sets most packages' data directories to /var and config ones to /etc
   - etc/eshell/alias holds eshell aliases

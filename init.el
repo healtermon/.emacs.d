@@ -2550,6 +2550,17 @@ This function is added to the `standard-themes-post-load-hook'."
 	;; org-mode-hook
 	)
 
+;; un-emphasize when cursor is on element
+;; will fail to detect elements that are nested inside "certain other elements", like comments or document titles
+(elpaca-leaf org-appear
+	:after org
+	:hook org-mode-hook
+	;; hook it with org-modern if possible, 'cuz I want to see everything with default prefs in life.org
+	:defer-config	;; over-excessive defer here, but whatever
+	(setq org-appear-autoemphasis nil ;the only one that's on by default, like for /italic/, _underline_, +strikethrough+, etc.
+				org-appear-autoentities t
+				org-appear-autolinks nil
+				org-appear-autosubmarkers t))
 
 
 ;;; For Fun / Useless / Miscellaneous 
@@ -3721,18 +3732,6 @@ TODAYP is t when the current agenda view is on today."
 	:after tempel
 	:require t)
 
-;; commented out 'cuz got error after I update all packages
-;; un-emphasize when cursor is on element
-;; will fail to detect elements that are nested inside "certain other elements", like comments or document titles
-(elpaca-leaf org-appear
-	:after org
-	:hook org-mode-hook
-	;; hook it with org-modern if possible, 'cuz I want to see everything with default prefs in life.org
-	:defer-config                         ;; over-excessive defer here, but whatever
-	(setq org-appear-autoemphasis nil ;the only one that's on by default, like for /italic/, _underline_, +strikethrough+, etc.
-				org-appear-autoentities t
-				org-appear-autolinks nil
-				org-appear-autosubmarkers t))
 
 
 
