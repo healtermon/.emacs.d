@@ -99,7 +99,16 @@ org-mode
 (verse "#+begin_verse" n> r> n> "#+end_verse")
 (src "#+begin_src " p n> r> n> "#+end_src" :post (org-edit-src-code))
 (elisp "#+begin_src emacs-lisp" n> r> n "#+end_src" :post (org-edit-src-code))
+(python "#+begin_src python" n> r> n "#+end_src" :post (org-edit-src-code))
+(anspython "#+name:ans\n#+begin_src python" n> r> n "#+end_src" :post (org-edit-src-code))
+(java "#+begin_src java" n> r> n "#+end_src" :post (org-edit-src-code))
 (equation "\\begin{equation}" p n> r> n "\\end{equation}")
+
+
+java-mode
+
+(fori "for (int i=0;i<" p ";++i){" n> n> "}")
+(forj "for (int j=0;j<" p ";++j){" n> n> "}")
 
 ;; Local Variables:
 ;; mode: lisp-data

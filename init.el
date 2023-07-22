@@ -17,6 +17,7 @@
 ;; SPC l l  narrow-to-region & SPC l j to widen, basically edit only in region
 ;; s = (qwerty)xah-fly-keys RET at point without moving cursor
 ;; SPC i j = open recent file
+;; C-x ( [...] C-x ) define keyboard macro and C-x e to apply it and then eeeee to keep applying it or M-100 C-x e to apply it 100 times in one go.
 
 ;;;; Packages to look at or consider
 ;;;;; Packages to maybe have a look at
@@ -55,7 +56,7 @@
 ;; - forge, for working with git forges
 ;; - transmission
 ;; - sgml-mode, for working with html files
-;; - emms
+1;; - emms
 ;; - proof-general, for working with proof assistants, targetd at intermediate to experts
 ;; - compile.el
 ;; - lingva, interface with google translate
@@ -74,6 +75,8 @@
 ;; - vulpea, org and org-roam functions to help with programming org-roam-related stuff https://github.com/d12frosted/vulpea
 ;; - winner-mode, allows you to undo and redo changes to window configurations
 ;; - org-modern-indent, makes fringe area indent show properly indented instead of disabled when org-indent is used with org-modern
+;; - lilypond-auto-insert-mode, more lilypond auto-insertions in emacs
+;; - using English dictionaries in Emacs: https://irreal.org/blog/?p=7303
 
 ;;;;; Cool packages that I want to install later on
 ;; - persp-mode, workspace manager
@@ -86,6 +89,7 @@
 nil
 ;;; Config Debugging
 ;; idk where to put this, here will do.
+
 (setq +init-file-debug t)
 (setq debug-on-error nil)
 (if +init-file-debug
@@ -304,6 +308,8 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
 (add-hook 'isearch-mode-hook #'hl-line-mode)
 (add-hook 'isearch-mode-end-hook '+turn-off-hl-line-mode)
 
+;; display match count when using isearch
+(setq isearch-lazy-count t)
 
 ;;;; Elisp Programming
 ;; in Emacs, elisp programming is more important than other sorts of programming,
@@ -355,12 +361,16 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
    ("<SPC> 1 i" . crux-find-user-init-file)
    ("<SPC> 1 I" . (lambda () (interactive) (find-file-other-window +user-early-init-file)))
    ("<SPC> 1 t" . (lambda () (interactive) (find-file-other-window (concat +org-roam-dir "20230105103905.org"))))
+	 ("<SPC> 1 y" . (lambda () (interactive) (find-file-other-window (concat +org-roam-dir "tasks.org"))))
    ("<SPC> 1 f" . (lambda () (interactive) (find-file-other-window (concat +emacs-dir "lisp/funcs.el"))))
-	 ("<SPC> 1 h" . (lambda () (interactive) (dired-other-window (concat +stuff-dir))))
+	 ("<SPC> 1 s" . (lambda () (interactive) (dired-other-window (concat +stuff-dir))))
+	 ("<SPC> 1 h" . (lambda () (interactive) (dired-other-window "~/")))
    ("<SPC> 1 c" . (lambda () (interactive) (dired-other-window (concat +stuff-dir "compro/healtermon/"))))
-	 ("<SPC> 1 u" . (lambda () (interactive) (dired-other-window (concat +stuff-dir "uni/"))))
+	 ("<SPC> 1 b" . (lambda () (interactive) (find-file-other-window (concat +org-roam-dir "20230521212331.org"))))
+	 ("<SPC> 1 u" . (lambda () (interactive) (dired-other-window (concat +stuff-dir "university/"))))
 	 ("<SPC> 1 d" . (lambda () (interactive) (dired-other-window (concat "~/Downloads/"))))
    ("<SPC> 1 l" . (lambda () (interactive) (find-file-other-window (concat +org-roam-dir "life.org"))))
+	 ("<SPC> 1 e" . (lambda () (interactive) (find-file-other-window (concat +stuff-dir "compro/mitsuharu/emacs-mac/"))))
 	 ("<SPC> 2 c" . (lambda () (interactive) (require 'calfw) (cfw:open-calendar))))
   :config
   ;; set-layout required before enabling
@@ -629,15 +639,25 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
 
 (defvar +bibliography-directory       (concat +stuff-dir "notes/bib/references.bib"))
 (defvar +zotero-styles-directory      (concat +stuff-dir "Zotero/styles/"))
+(defvar +org-cite-csl-styles-dir +zotero-styles-directory)
+(defvar +org-cite-global-bibliography `(,+bibliography-directory))
 (defvar +healtermon-gcal-file         (concat +stuff-dir "notes/calendars/gcal.org") "healtermon@gmail.com main calendar") ;; i'll elogate the names if variety of files expands
-(defvar +healtermon-gtasks-file       (concat +stuff-dir "notes/tasks/gtasks.org")   "healtermon@gmail.com \"My Tasks\" tasklist")
+(defvar +healtermon-gtasks-file       (concat +stuff-dir "notes/zk/tasks.org")   "healtermon@gmail.com \"My Tasks\" tasklist")
 (defvar +org-roam-dir                 (concat +stuff-dir "notes/zk/"))
 (defvar +org-download-image-directory (concat +stuff-dir "notes/zk/p/"))
 (defvar +org-roam-dailies-directory "daily/" "diary directory relative to org-roam-directory")
 
+(defvar +fuel-factor-root-dir "/Applications/factor/")
+(defvar +forth-executable "/opt/homebrew/bin/gforth")
+
 (when +apexless
   (load (concat +lisp-dir "funcs.el"))
-  (load (concat +lisp-dir "random-secrets.el")))
+  (load (concat +lisp-dir "random-secrets.el"))
+	)
+
+(defvar +java-home-folder "/opt/homebrew/Cellar/openjdk/20.0.1/libexec/openjdk.jdk/Contents/Home/"  "java home folder, find with this line at command line: mvn --version")
+(setenv "JAVA_HOME" +java-home-folder)
+(defvar +lsp-java-java-path (concat +java-home-folder "bin/java"))
 
 
 (defun +delete-file-visited-by-buffer (buffername)
@@ -696,6 +716,7 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
     (vterm-send-string command)
     (vterm-send-return)
     (switch-to-buffer-other-window buf))) 
+
 
 (defun +elisp-mode ()
 	(interactive)
@@ -834,8 +855,8 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
    ("C-c m" . consult-mode-command)
    ("C-c k" . consult-kmacro)
    ;; C-x bindings (ctl-x-map)
-   ("C-x M-:" . consult-complex-command) ;; orig. repeat-complex-command
-   ("C-x b" . consult-buffer)            ;; orig. switch-to-buffer
+   ("C-x M-:" . consult-complex-command)		 ;; orig. repeat-complex-command
+   ("C-x b" . consult-buffer)								 ;; orig. switch-to-buffer
    ("C-x 4 b" . consult-buffer-other-window) ;; orig. switch-to-buffer-other-window
    ("C-x 5 b" . consult-buffer-other-frame) ;; orig. switch-to-buffer-other-frame
    ("C-x r b" . consult-bookmark)           ;; orig. bookmark-jump
@@ -848,10 +869,7 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
    ("M-y" . consult-yank-pop) ;; orig. yank-pop
    ;; M-g bindings (goto-map)
    ("M-g e" . consult-compile-error)
-   ("M-g f" . consult-flymake)					 ;; Alternative: consult-flycheck
-   ("M-g g" . consult-goto-line)				 ;; orig. goto-line
-   ("M-g M-g" . consult-goto-line)			 ;; orig. goto-line
-   ("M-g o" . consult-outline)					 ;; Alternative: consult-org-heading
+   ("M-g f" . consult-flymake)		 ;; Alternative: consult-flycheck
    ("M-g g" . consult-goto-line)	 ;; orig. goto-line
    ("M-g M-g" . consult-goto-line) ;; orig. goto-line
    ("M-g o" . consult-outline)		 ;; Alternative: consult-org-heading
@@ -871,6 +889,7 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
    ("M-s k" . consult-keep-lines)
    ("M-s u" . consult-focus-lines)
    ("M-s m" . consult-multi-occur)
+	 ("M-s i" . consult-info)
    ;; Misc
    ("<help> a" . consult-apropos)
    ([remap switch-to-buffer] . consult-buffer)
@@ -880,16 +899,16 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
    ("M-s e" . consult-isearch-history)
    (isearch-mode-map
     :package isearch
-    ("M-e" . consult-isearch-history)					;; orig. isearch-edit-string
-    ("M-s e" . consult-isearch-history)				;; orig. isearch-edit-string
-    ("M-s l" . consult-line) ;; needed by consult-line to detect isearch
+    ("M-e" . consult-isearch-history)		;; orig. isearch-edit-string
+    ("M-s e" . consult-isearch-history)	;; orig. isearch-edit-string
+    ("M-s l" . consult-line)			 ;; needed by consult-line to detect isearch
     ("M-s L" . consult-line-multi) ;; needed by consult-line to detect isearch
     )
    ;; Minibuffer history
    (minibuffer-local-map
     :package leaf
-    ("M-s" . consult-history)				;; orig. next-matching-history-element
-    ("M-r" . consult-history)				;; orig. previous-matching-history-element
+    ("M-s" . consult-history)	;; orig. next-matching-history-element
+    ("M-r" . consult-history)	;; orig. previous-matching-history-element
     ))
   
   :init
@@ -910,6 +929,22 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
   (advice-add #'register-preview :override #'consult-register-window)
 
   (fset 'multi-occur #'consult-multi-occur) ;; drop-in replacement.
+	;; :defer-config
+	;; ;; Exclude Tramp buffers from preview, see consult wiki: https://github.com/minad/consult/wiki#do-not-preview-exwm-windows-or-tramp-buffers
+	;; (defun consult-buffer-state-no-tramp ()
+	;; 	"Buffer state function that doesn't preview Tramp buffers."
+	;; 	(let ((orig-state (consult--buffer-state))
+	;; 				(filter (lambda (action cand)
+	;; 									(if (or (eq action 'return)
+	;; 													(let ((buffer (get-buffer cand)))
+	;; 														(and buffer
+	;; 																 (not (file-remote-p (buffer-local-value 'default-directory buffer))))))
+	;; 											cand
+	;; 										nil))))
+	;; 		(lambda (action cand)
+	;; 			(funcall orig-state action (funcall filter action cand)))))
+	;; (setq consult--source-buffer
+	;; 			(plist-put consult--source-buffer :state #'consult-buffer-state-no-tramp))
   )
 (leaf consult-dir
   :straight t
@@ -1001,7 +1036,7 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
   :config
   (setq vr/engine 'emacs))
 
-(leaf outli
+(leaf 
   :doc "outline fontification and nesting, org-style tabbing on them, plus more commands, see outli speed-command-help "
   :straight (outli :type git :host github :repo "jdtsmith/outli") 
   :bind (outli-mode-map     ; convenience key to get back to containing heading
@@ -1013,9 +1048,12 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
 ;;; Generally Useful
 (leaf reveal-in-folder
   :straight t
+	:doc "Open Finder at location, only works on macOS"
   :if +apexless
-  :doc "Open Finder at location, only works on macOS"
-  )
+	:init
+	(defalias '+reveal-in-finder #'reveal-in-folder)
+	(defalias '+open-in-finder #'reveal-in-folder)
+	)
 (leaf terminal-here
   :straight t
   :doc "Open location in external terminal"
@@ -1120,7 +1158,7 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
     ("M-l" . dirvish-ls-switches-menu)
     ("M-m" . dirvish-mark-menu)
     ("M-t" . dirvish-layout-toggle)
-    ("M-s" . dirvish-setup-menu)
+    ;; ("M-s" . dirvish-setup-menu) ;; would rather have consult commands available
     ("M-e" . dirvish-emerge-menu)
     ("M-j" . dirvish-fd-jump)
     ([mouse-1] . dirvish-subtree-toggle-or-open)
@@ -1226,7 +1264,9 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
 
 
 (leaf yasnippet
-  :straight t)
+  :straight t
+	:hook
+	(java-mode-hook . yas-minor-mode))
 ;;; Notes/The Org Ecosystem 
 
 (leaf org
@@ -1294,6 +1334,7 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
 (leaf org-download
   :straight t
   :after org
+	:require t
   :setq
   (org-download-method . 'directory)
   :setq-default
@@ -1519,12 +1560,12 @@ Notes:
   (org-cite ((t (:foreground "DarkSeaGreen4"))))
   (org-cite-key ((t (:foreground "forest green" :slant italic))))
   :config
-  (setq org-cite-global-bibliography `(,(expand-file-name "~/stuff/notes/bib/references.bib")))
-  (setq org-cite-csl-styles-dir (expand-file-name "~/Zotero/styles/"))
+	(setq org-cite-global-bibliography +org-cite-global-bibliography)
+  (setq org-cite-csl-styles-dir +org-cite-csl-styles-dir)
   (setq org-cite-export-processors
         '((org . (csl "ieee.csl"))
-          (md . (csl "chicago-fullnote-bibliography.csl")) ; Footnote reliant
-          (latex . biblatex)                   ; For humanities
+          (md . (csl "chicago-fullnote-bibliography.csl"))	; Footnote reliant
+          (latex . biblatex)																; For humanities
           (odt . (csl "chicago-fullnote-bibliography.csl")) ; Footnote reliant
           (t . (csl "modern-language-association.csl"))     ; Fallback
           )))
@@ -1613,8 +1654,10 @@ Notes:
   :straight t
   :after pdf-tools
   :hook pdf-view-mode-hook
-  :pre-setq
-  (pdf-view-restore-filename . +pdf-view-restore-file))
+	;; ;; commented out because my extention to no-littering in my config above takes care of this already
+  ;; :pre-setq
+  ;; (pdf-view-restore-filename . +pdf-view-restore-file)
+	)
 
 ;; for reading epub, needs more config for epub to look nice
 (leaf nov
@@ -1644,7 +1687,7 @@ Notes:
   :bind
   (eshell-mode-map
    ("C-l" . +eshell-delete-clear))
-  :defer-config
+	:defer-config
   ;; must add-to-list AFTER (load 'eshell) as the modules list otherwise it'll be an invalid list(as it has your added item(/s) only) that customize will override
   (add-to-list 'eshell-modules-list 'eshell-smart)
   (setq eshell-history-size 10000)
@@ -1659,14 +1702,14 @@ from https://www.n16f.net/blog/clearing-the-eshell-buffer/"
       (eshell/clear t)
       (eshell-emit-prompt)
       (insert input)))
-
+	
   (leaf em-smart
     :doc "an eshell module, comes with eshell, eshell-smart-initialize is called from eshell-mode by default"
+		:after esh-mode
     :pre-setq
     (eshell-where-to-jump . 'begin)
     ;; (eshell-review-quick-commands . nil)
     (eshell-smart-space-goes-to-end . t)
-    (add-to-list 'eshell-modules-list 'eshell-smart)
     )
   )
 (leaf eshell-prompt-extras
@@ -1676,10 +1719,10 @@ from https://www.n16f.net/blog/clearing-the-eshell-buffer/"
   :after esh-mode
   :defer-config
   (setq eshell-prompt-function 'epe-theme-multiline-with-status))
-(leaf eshell-git-prompt
-  :straight t
-  :doc "more prompts, but with git info as well.
-I don't like any 'cuz no fish-style directory abbreviation")
+;; (leaf eshell-git-prompt
+;;   :straight t
+;;   :doc "more prompts, but with git info as well.
+;; I don't like any 'cuz no fish-style directory abbreviation")
 (leaf eshell-up
   :straight t
   :after esh-mode
@@ -1769,7 +1812,8 @@ I don't like any 'cuz no fish-style directory abbreviation")
          ("M-RET" . company-complete-selection)
          ("<tab>" . company-complete-selection) ; TODO fix cdlatex and company working together, this may be tough
          ("TAB" . company-complete-selection))
-  ;; :hook prog-mode-hook
+  :hook
+	matlab-mode-hook
   :defer-config
   (setq company-minimum-prefix-length 1)
   (setq company-idle-delay 0.0) ;; default is 0.2
@@ -1793,7 +1837,12 @@ I don't like any 'cuz no fish-style directory abbreviation")
                    :includes (corfu-info corfu-history))
   :if +apexless
   :doc "adds a child frame for completion-at-point"
-  :hook prog-mode-hook
+  :hook
+	(prog-mode-hook . (lambda ()
+											(when (not (or (string= major-mode "matlab-mode")
+																		 (string= major-mode "java-mode"))) ;put the modes u wanna exclude here haha
+												(corfu-mode))))
+	inferior-python-mode-hook
   (eshell-mode-hook . (lambda ()
                         (setq-local corfu-quit-at-boundary t ;; make it more like a normal shell
                                     corfu-quit-no-match t
@@ -2044,15 +2093,26 @@ variable `project-local-identifier' to be considered a project."
 (leaf eglot
   :straight t
   :hook
-  ((python-mode-hook
+  ((python-mode-hook ;; 'cuz I didn't manage to turn off pycodestyle, yellow squiggles everywhere!
     c-mode-hook
     c++-mode-hook
     rust-mode-hook
     nix-mode-hook
     clojure-mode-hook
     julia-mode-hook
+		;; java-mode-hook
     ) . eglot-ensure)
-  :defer-config
+  :preface
+  ;; get pycodestyle to shut up, should set before loading eglot, otherwise doesn't work...
+  (defun +python-eglot-config ()
+    (setq-default eglot-workspace-configuration
+                  '(:pylsp (;; :configurationSources ["flake8"]
+														:plugins ( :pycodestyle (:enabled nil)
+																			 ;; :mccabe (:enabled nil)
+																			 ;; :flake8 (:enabled nil)
+																			 )))))
+  (add-hook 'python-mode-hook #'+python-eglot-config)
+	:defer-config
   (setq eglot-events-buffer-size 0) ;; In the name of speed, this stops eglot from logging the json events of lsp server
   (setq completion-category-overrides '((eglot (styles orderless-fast))))
 
@@ -2071,14 +2131,7 @@ variable `project-local-identifier' to be considered a project."
                               (cape-company-to-capf #'company-yasnippet)))))
   (add-hook 'eglot-managed-mode-hook #'+eglot-capf)
 
-  ;; get pycodestyle to shut up
-  (defun +python-eglot-config ()
-    (setq-default eglot-workspace-configuration
-                  '((:pylsp . ( :configurationSources ["flake8"]
-                                :plugins ( :pycodestyle (:enabled nil)
-                                           :mccabe (:enabled nil)
-                                           :flake8 (:enabled nil)))))))
-  (add-hook 'python-mode-hook #'+python-eglot-config))
+	)
 
 (leaf consult-eglot
   :straight t
@@ -2093,17 +2146,9 @@ variable `project-local-identifier' to be considered a project."
   :defer-config
   ;; Remove guess indent python message
   (setq python-indent-guess-indent-offset-verbose nil)
-  (setq python-indent-offset 4))
-(leaf python
-  ;; DON'T confuse this with python-mode.el, they are 2 different packages:
-  ;; python.el is built-in and has better integration with emacs, while
-  ;; python-mode.el is a mess in terms of fucntions to call.
-  :straight t
-  :custom
-	(python-shell-interpreter . "python3")
-  ;; Remove guess indent python message
-  (python-indent-guess-indent-offset-verbose . nil)
-  (python-indent-offset . 4))
+  (setq python-indent-offset 4)
+	(setq python-shell-interpreter "python3.10") ; for cocos2d and other cs1010s stuff to work :(
+	)
 ;;;; Scheme Programming 
 (leaf geiser-guile
   :straight t
@@ -2156,8 +2201,6 @@ variable `project-local-identifier' to be considered a project."
 ;; see professional setup: https://old.reddit.com/r/emacs/comments/xqojo7/emacs_and_rails/iqbh0id/
 ;;; Other-languages Programming
 
-(leaf matlab-mode
-  :straight t)
 
 (leaf nix-mode
   :straight t
@@ -2528,6 +2571,7 @@ This function is added to the `standard-themes-post-load-hook'."
   )
 
 (leaf valign
+	:disabled t 													;this shit too laggy
   :straight t
   :hook org-mode-hook
   :init (setq valign-fancy-bar t))
@@ -2539,18 +2583,6 @@ This function is added to the `standard-themes-post-load-hook'."
   ;; org-mode-hook
   )
 
-;; un-emphasize when cursor is on element
-;; will fail to detect elements that are nested inside "certain other elements", like comments or document titles
-(leaf org-appear
-  :straight t
-  :after org
-  :hook org-mode-hook
-  ;; hook it with org-modern if possible, 'cuz I want to see everything with default prefs in life.org
-  :defer-config                         ;; over-excessive defer here, but whatever
-  (setq org-appear-autoemphasis nil ;the only one that's on by default, like for /italic/, _underline_, +strikethrough+, etc.
-        org-appear-autoentities t
-        org-appear-autolinks nil
-        org-appear-autosubmarkers t))
 
 (leaf org-sticky-header
   :straight t
@@ -2566,6 +2598,9 @@ This function is added to the `standard-themes-post-load-hook'."
 
 (leaf fsbot-data-browser ; fsbot is the IRC bot at #emacs@Libera.Chat
   :straight t)
+
+(leaf 2048-game
+	:straight t)
 ;;; Graveyard 
 ;; this package.el stuff is just here 'cuz I'll definitely forget the structure of this if ever need be
 ;; ;; This use-package.el code is kept to enable browsing of MELPA packages. It says package-archives is a void variable...
@@ -2599,73 +2634,6 @@ This function is added to the `standard-themes-post-load-hook'."
 ;;  :after company
 ;;  :config
 ;;  )
-
-(leaf lsp-mode
-  :disabled t
-  :straight t
-  :init
-  ;; set prefix for lsp-command-keymap (few alternatives - "C-l", "C-c l"), must be set before lsp-mode loads
-  (setq lsp-keymap-prefix "C-c l")
-  (setq read-process-output-max (* 1024 1024)) ;; 1MiB, for lsp to be faster
-
-  :hook
-  ((c-mode-hook
-    c++-mode-hook
-    python-mode-hook
-    haskell-mode-hook) . lsp-deferred)
-  (lsp-mode-hook . lsp-enable-which-key-integration)
-  :config
-  (setq lsp-idle-delay 0.1)
-  (setq lsp-ui-doc-enable nil)
-  (setq lsp-ui-doc-header t)
-  (setq lsp-ui-doc-include-signature t)
-  (setq lsp-ui-doc-border (face-foreground 'default))
-  (setq lsp-ui-sideline-show-code-actions t)
-  (setq lsp-ui-sideline-delay 0.05)
-
-  (setq lsp-ui-doc-show-with-cursor t)
-  (setq lsp-ui-doc-show-with-mouse t)
-  (setq lsp-lens-enable t)
-  (setq lsp-completion-show-detail t)
-  (setq lsp-completion-show-kind t)
-  (setq lsp-ui-sideline-show-diagnostics nil)
-  )
-
-(leaf lsp-ui
-  :straight t
-  :after lsp-mode
-  :hook lsp-mode-hook)
-;; (use-package lsp-treemacs
-;;   :after lsp-mode
-;;   :config (setq treemacs-space-between-root-nodes nil)
-;;   :commands lsp-treemacs-errors-list)
-
-;; (use-package lsp-pyright
-;;   :if +apexless
-;;   :hook (python-mode . (lambda ()
-;;       (require 'lsp-pyright)
-;;       (lsp-deferred)))
-;;   :init
-;;   (when (executable-find "python3")
-;;     (setq lsp-pyright-python-executable-cmd "python3"))
-;;   (setq lsp-pyright-use-library-code-for-types t) ;; set this to nil if getting too many false positive type errors
-;;   (setq lsp-pyright-stub-path (concat (getenv "HOME") "/stuff/compro/microsoft/python-type-stubs")) ;; example)
-;;   )
-
-;; (use-package lsp-haskell
-;;   :init
-;;   (if (+system-name? "DURIAN")
-;;       (setq ghc-location "~/.ghcup/bin/ghc")))
-
-;; Debug Adaptor Protocol(DAP)-related
-(leaf dap-mode
-  :straight t
-  :after lsp-mode
-  :require
-  dap-cpptools ; afterwards run dap-cpptools-setup
-  dap-python ; requires pip install "ptvsd>=4.2"
-  :global-minor-mode dap-auto-configure-mode)
-;; (use-package dap-LANGUAGE) to load the dap adapter for your language
 
 
 ;; couldn't get it to work; I couldn't get straight to git pull pdf-scroll.el in pdf-roll branch of https://github.com/dalanicolai/pdf-tools
@@ -2708,7 +2676,7 @@ This function is added to the `standard-themes-post-load-hook'."
   :straight t
   :after org eval-in-repl)
 (leaf eval-in-repl
-:straight t)
+	:straight t)
 ;; (org-babel-do-load-languages
 ;;  'org-babel-load-languages
 ;;  '((emacs-lisp . t) 
@@ -2803,13 +2771,14 @@ This function is added to the `standard-themes-post-load-hook'."
 ;; 	:after eyebrowse
 ;; 	:global-minor-mode t)
 
-(leaf org-gtasks ; sync google tasks, probably won't use it as google tasks don't support scheduling of tasks, only deadline
-	:straight (org-gtasks :type git :host github :repo "JulienMasson/org-gtasks")
-	:defer-config
-	(org-gtasks-register-account :name "S L"
-															 :directory +healtermon-gtasks-file
-															 :client-id +gclient-id
-															 :client-secret +gclient-secret))
+;; ;; removed 'cuz I decided that orgzly was good enough to show TODOs. Org tasks can have schedule and deadlines, so it works. I gave up on having everything show up on a GUI calendar, letting emacs agenda do it instead. Orgzly gives notifications, so all good!
+;; (leaf org-gtasks ; sync google tasks, probably won't use it as google tasks don't support scheduling of tasks, only deadline
+;; 	:straight (org-gtasks :type git :host github :repo "JulienMasson/org-gtasks")
+;; 	:defer-config
+;; 	(org-gtasks-register-account :name "S L"
+;; 															 :directory +healtermon-gtasks-file
+;; 															 :client-id +gclient-id
+;; 															 :client-secret +gclient-secret))
 
 ;; takes too long to load, idk what to do with it either
 ;; (use-package emojify :config (global-emojify-mode))
@@ -2892,7 +2861,6 @@ This function is added to the `standard-themes-post-load-hook'."
   :straight t)
 (leaf anaconda-mode
   :straight t
-  :bind ("C-c C-x" . next-error)
   :hook python-mode-hook)
 
 (leaf company-anaconda           ; anaconda backend for company-mode
@@ -2908,7 +2876,7 @@ This function is added to the `standard-themes-post-load-hook'."
 ;; https://old.reddit.com/r/emacs/comments/x6rg1u/rust_with_emacs/inb9qka/
 (leaf rust-mode
   :straight t
-  :hook (rust-mode . cargo-minor-mode)
+  :hook (rust-mode-hook . cargo-minor-mode)
   :defer-config
   (setq rust-format-on-save t)
   ;; :custom-faces ;; left-over from use-package, idk how to translate this to leaf
@@ -2926,9 +2894,11 @@ This function is added to the `standard-themes-post-load-hook'."
   :straight t)
 
 (leaf racket-mode
+	;; check out racket-xp-mode config in doom if you wanna use racket!
   :straight t)
 
-(leaf geiser-mit ; idk I can't get MIT-Scheme repl to connect to geiser
+(leaf geiser-mit					; idk I can't get MIT-Scheme repl to connect to geiser
+	;; TODO: try following https://github.com/karthink/.emacs.d/blob/master/lisp/setup-scheme.el
   :straight t
   :doc "use command geiser-mit to begin")
 
@@ -3297,17 +3267,18 @@ TODAYP is t when the current agenda view is on today."
   (+execute-in-vterm
    "cd ~/stuff/compro/healtermon/sudoku-c-ncurses/ && make && ./sudoku-ncurses"))
 
-;; (add-hook 'c-mode-common-hook
-;;           (lambda () ;; But c-mode-base-map is only defined after cc-mode is loaded(only after visiting the c file), so putting it in the common-c-mode-hook works
-;;             (define-key 'c-mode-base-map "C-c C-c" #'+compile-and-execute-in-vterm)))
 
 (leaf cc-mode
   :hook
   (c-mode-hook . (lambda () (c-toggle-comment-style -1))) ; use // instead of /* */ so ts-fold can fold comments better)
-  (c-mode-common-hook
-   .
-   (lambda () ;; c-mode-base-map is only defined after cc-mode is loaded(only after visiting the c file), so putting it in the common-c-mode-hook works
-     (define-key c-mode-base-map (kbd "C-c C-c") #'+compile-and-execute-in-vterm))))
+  ;; (c-mode-common-hook
+  ;;  .
+  ;;  (lambda () ;; c-mode-base-map is only defined after cc-mode is loaded(only after visiting the c file), so putting it in the common-c-mode-hook works
+  ;;    (define-key c-mode-base-map (kbd "C-c C-c") #'+compile-and-execute-in-vterm)))
+	(c-mode-common-hook
+	 .
+	 (lambda () ;; to get "case" blocks in "switch-case" to be indented in Java, and all c-mode languages
+		 (c-set-offset 'case-label '+))))
 
 (leaf cmake-mode
   :straight t
@@ -3390,13 +3361,14 @@ TODAYP is t when the current agenda view is on today."
     :hook
     lua-mode-hook))
 
-(leaf eshell-did-you-mean               
-  :straight t
-  :doc "supposed to be a do-u-mean-this? kinda thing, but I think the eshell extensions
-I loaded messed up its setup function (eshell-did-you-mean-setup)." ;TODO fix this, read the string on left
-  :after esh-mode
-  :init
-  (eshell-did-you-mean-setup))
+;; ;; commented out 'cuz it breaks em-smart for now
+;; (leaf eshell-did-you-mean               
+;;   :straight t
+;;   :doc "supposed to be a do-u-mean-this? kinda thing, but I think the eshell extensions
+;; I loaded messed up its setup function (eshell-did-you-mean-setup)." ;TODO fix this, read the string on left
+;;   :after esh-mode
+;;   :init
+;;   (eshell-did-you-mean-setup))
 
 
 ;; (leaf exec-path-from-shell
@@ -3482,3 +3454,461 @@ I loaded messed up its setup function (eshell-did-you-mean-setup)." ;TODO fix th
 	)
 
 
+(defun rex/consult-grep-in-a-directory ()
+  "Query the user for a directory to grep in."
+  (interactive)
+  (let ((current-prefix-arg 1))
+    (call-interactively 'consult-ripgrep)))
+
+
+
+
+(leaf lsp-mode
+  ;; :disabled t 
+  :straight t
+	:hook
+  ((;; c-mode-hook
+    ;; c++-mode-hook
+    ;; python-mode-hook ;; Disabled as it crashes my emacs after running for a while? lmao what's going on? I was doing python coding, was it python interpreter and infinite running programs that crashed emacs? Though I keyboard-interrupted it...
+    ;; haskell-mode-hook
+		java-mode-hook
+		) . lsp-deferred)
+  (lsp-mode-hook . lsp-enable-which-key-integration)
+  
+  :init
+  ;; set prefix for lsp-command-keymap (few alternatives - "C-l", "C-c l"), must be set before lsp-mode loads
+  (setq lsp-keymap-prefix "C-c l")
+  (setq read-process-output-max (* 1024 1024)) ;; 1MiB, for lsp to be faster
+  :config
+  (setq lsp-idle-delay 0.1)
+  (setq lsp-lens-enable t)
+  (setq lsp-completion-show-detail t)
+  (setq lsp-completion-show-kind t)
+
+	(setq lsp-headerline-breadcrumb-enable nil) ; annoying!
+	(setq lsp-intelephense-multi-root nil)			; don't scan unnecessary projects
+  (with-eval-after-load 'lsp-intelephense
+    (setf (lsp--client-multi-root (gethash 'iph lsp-clients)) nil))
+	
+	;; ;; python-related
+	;; (setq lsp-pyls-plugins-pycodestyle-enabled nil)
+	(setq lsp-pylsp-plugins-pycodestyle-enabled          nil )     
+	(setq lsp-pylsp-plugins-yapf-enabled                 nil )     
+	(setq lsp-pylsp-plugins-black-enabled                nil )     
+	(setq lsp-pylsp-plugins-flake8-enabled               nil )     
+	(setq lsp-pylsp-plugins-mccabe-enabled               nil )     
+	(setq lsp-pylsp-plugins-pylint-enabled               nil )     
+	;; (setq lsp-pylsp-plugins-preload-enabled              nil )     
+	(setq lsp-pylsp-plugins-autopep8-enabled             nil )     
+	(setq lsp-pylsp-plugins-pyflakes-enabled             nil )     
+	(setq lsp-pylsp-plugins-jedi-hover-enabled           nil )     
+	(setq lsp-pylsp-plugins-pydocstyle-enabled           nil )     
+	;; (setq lsp-pylsp-plugins-jedi-symbols-enabled         nil )     
+	;; (setq lsp-pylsp-plugins-jedi-completion-enabled      nil )    
+	;; (setq lsp-pylsp-plugins-jedi-definition-enabled      nil )      
+	;; (setq lsp-pylsp-plugins-jedi-references-enabled      nil )      
+	;; (setq lsp-pylsp-plugins-rope-completion-enabled      nil )      
+	;; (setq lsp-pylsp-plugins-jedi-signature-help-enabled  nil )      
+  )
+
+(leaf lsp-ui
+  :straight t
+  :after lsp-mode
+  :hook lsp-mode-hook
+	:bind
+	(lsp-ui-mode-map
+	 ([remap xref-find-definitions] . lsp-ui-peek-find-definitions)
+   ([remap xref-find-references] . lsp-ui-peek-find-references))
+	:init
+	(setq lsp-ui-doc-enable t)
+  (setq lsp-ui-doc-header t)
+  (setq lsp-ui-doc-include-signature t)
+  (setq lsp-ui-doc-border (face-foreground 'default))
+	(setq lsp-ui-doc-delay 1.5
+				lsp-ui-doc-position 'bottom
+				lsp-ui-doc-max-width 100
+				)
+  (setq lsp-ui-sideline-show-code-actions t)
+  (setq lsp-ui-sideline-delay 0.05)
+	
+  (setq lsp-ui-doc-show-with-cursor t)
+  (setq lsp-ui-doc-show-with-mouse t)
+  (setq lsp-ui-sideline-show-diagnostics nil)
+
+	)
+
+;; (leaf lsp-treemacs
+;; 	:after lsp-mode
+;; 	:require t
+;; 	:config (setq treemacs-space-between-root-nodes nil)
+;; 	:commands lsp-treemacs-errors-list)
+
+;; (use-package lsp-pyright
+;;   :if +apexless
+;;   :hook (python-mode . (lambda ()
+;;       (require 'lsp-pyright)
+;;       (lsp-deferred)))
+;;   :init
+;;   (when (executable-find "python3")
+;;     (setq lsp-pyright-python-executable-cmd "python3"))
+;;   (setq lsp-pyright-use-library-code-for-types t) ;; set this to nil if getting too many false positive type errors
+;;   (setq lsp-pyright-stub-path (concat (getenv "HOME") "/stuff/compro/microsoft/python-type-stubs")) ;; example)
+;;   )
+
+;; (use-package lsp-haskell
+;;   :init
+;;   (if (+system-name? "DURIAN")
+;;       (setq ghc-location "~/.ghcup/bin/ghc")))
+
+;; Debug Adaptor Protocol(DAP)-related
+(leaf dap-mode
+  :straight t
+  :after lsp-mode
+	:config
+	(leaf dap-cpptools
+		:require t													; afterwards run dap-cpptools-setup
+		:doc "for C and C++"
+		)
+  (leaf dap-python
+		:require t													; requires pip install "ptvsd>=4.2"
+		)
+  :global-minor-mode dap-auto-configure-mode)
+;; (use-package dap-LANGUAGE) to load the dap adapter for your language
+
+;; ;; for CS1010S picture language
+;; (add-hook 'python-mode-hook (lambda ()
+;; 															(bind-keys :map python-mode-map
+;; 																				 ("M-c" . (lambda () (interactive) (python-shell-send-string "clear_all()")))
+;; 																				 :map inferior-python-mode-map
+;; 																				 ("M-c" . (lambda () (interactive) (python-shell-send-string "clear_all()"))))
+;; 															))
+
+(leaf elec-pair
+	:hook
+	((python-mode-hook
+		java-mode-hook
+		) . electric-pair-local-mode))
+
+(leaf hackernews
+	:straight t)
+
+(leaf eaf
+	;; check out this guy's config for EAF: https://github.com/MatthewZMD/.emacs.d#eaf
+	:straight t
+	)
+
+(use-package detached
+	;; copied from https://old.reddit.com/r/emacs/comments/104ud8k/how_do_you_use_the_terminal_during_a_coding/j3cn11r/
+	;; https://emacsconf.org/2022/talks/detached/
+	:disabled t
+  :init
+  (detached-init)
+  :bind (;; Replace `async-shell-command' with `detached-shell-command'
+         ([remap async-shell-command] . detached-shell-command)
+         ;; Replace `compile' with `detached-compile'
+         ([remap compile] . detached-compile)
+         ([remap recompile] . detached-compile-recompile)
+         ;; Replace built in completion of sessions with `consult'
+         ([remap detached-open-session] . detached-consult-session))
+  :custom ((detached-show-output-on-attach t)
+           (detached-terminal-data-command system-type)))
+
+(leaf matlab-mode
+	;; ref: https://swang251.github.io/2021/12/03/Matlab-in-Emacs/
+	;; karthink's setup: ~/stuff/compro/karthink/.emacs.d/lisp/setup-matlab.el 
+  :straight t
+	:if +apexless
+	:init
+	(setq matlab-shell-command "/Applications/MATLAB_R2022a.app/bin/matlab")
+	(setq matlab-shell-command-switches '("-nodesktop" "-nosplash"))
+	:config
+	(matlab-cedet-setup))
+
+(leaf ocp-indent
+	:when +apexless
+	:preface
+	(add-to-list 'load-path "/Users/s/.opam/default/share/emacs/site-lisp")
+	:require t)
+(leaf merlin
+	:config
+	(let ((opam-share (ignore-errors (car (process-lines "opam" "var" "share")))))
+    (when (and opam-share (file-directory-p opam-share))
+      ;; Register Merlin
+      (add-to-list 'load-path (expand-file-name "emacs/site-lisp" opam-share))
+      (autoload 'merlin-mode "merlin" nil t nil)
+      ;; Automatically start it in OCaml buffers
+      (add-hook 'tuareg-mode-hook 'merlin-mode t)
+      (add-hook 'caml-mode-hook 'merlin-mode t)
+      ;; Use opam switch to lookup ocamlmerlin binary
+      (setq merlin-command 'opam))))
+
+(leaf csv-mode
+	:straight t)
+
+
+;; Forth Programming
+(leaf forth-mode
+	:straight t
+	:pre-setq
+	`(forth-executable . ,+forth-executable)
+	:config
+	(require 'forth-block-mode)
+	(require 'forth-interaction-mode)
+	)
+
+;; Factor Programming
+(leaf fuel
+	:straight t
+	:config
+	(setq fuel-factor-root-dir +fuel-factor-root-dir))
+
+(leaf verilog-ext
+	:straight (verilog-ext :host github :repo "gmlarumbe/verilog-ext"
+												 :files ("verilog-ext.el" "verilog-ts-mode.el" "snippets"))
+	:after verilog-mode
+	:hook verilog-mode-hook
+	:config
+	(verilog-ext-mode-setup))
+
+;; Org Website!? https://www.youtube.com/watch?v=AfkrzFodoNw
+;; set up with github/sourcehut pages: https://www.youtube.com/watch?v=za99DwdZEyg
+(leaf htmlize
+	:straight t)
+
+
+
+(leaf solidity-mode
+	:straight t)
+
+(leaf xr
+	:straight t)
+
+(leaf djvu
+	:straight t)
+
+(leaf doc-view
+	;; doc-view-mode tips
+	;; change doc-view-resolution to increase resolution
+	;; 
+	;; here are some helpful functions to change fit
+	;; doc-view-fit-page-to-window
+	;; doc-view-fit-width-to-window
+	;; doc-view-fit-height-to-window
+	;; ...-fit-... functions
+	;; u probably need to change resolution and fit that to certain dimensions if u want to rescale or display on another screen.
+	:setq
+	(doc-view-resolution . 300)						; default is 100, too low, really
+	)
+
+
+(leaf lilypond-mode
+	:config
+	(add-to-list 'load-path "/opt/homebrew/Cellar/lilypond/2.24.1/share/emacs/site-lisp/lilypond/")
+	(load "lilypond-init"))
+;; ;; TODO SET IT UP WTF
+;; (leaf lyqi-mode
+;; 	:straight (lyqi :host github :repo "nsceaux/lyqi") ; you need to "make lyqi.elc" after downloading, follow instructions in README: https://github.com/nsceaux/lyqi
+;; 	:config
+;; 	(add-to-list 'auto-mode-alist '("\\.ly$" . lyqi-mode))
+;; 	(add-to-list 'auto-mode-alist '("\\.ily$" . lyqi-mode)))
+
+;; ;; lilypond code from https://old.reddit.com/r/emacs/comments/k0mld2/using_lilypond_in_emacs/gdjonva/
+;; (use-package lyqi-mode
+;;   :load-path "~/src/archive/emacs/lyqi/"
+;;   :custom
+;;   (lyqi:midi-command "timidity")
+;;   (lyqi:pdf-command "okular")
+;;   (lyqi:prefered-languages '("English"))
+
+;;   :config
+;;   (defun ap/lilypond-make ()
+;;     "Run Lilypond and play MIDI file."
+;;     (interactive)
+;;     (lyqi:compile-ly)
+;;     (lyqi:open-midi)))
+
+;; ;; from https://github.com/nsceaux/lyqi
+;; (custom-set-variables
+;;  '(lyqi:prefered-languages '(italiano nederlands))
+;;  '(lyqi:prefered-octave-mode 'absolute)
+;;  '(lyqi:keyboard-mapping 'azerty)
+;;  '(lyqi:custom-key-map '(("w" "\\trill")
+;;                          ("x" (space-around . "\\appoggiatura"))
+;;                          ("n" "~")
+;;                          ("," "(")
+;;                          (";" ")")
+;;                          (":" "[")
+;;                          ("=" "]")
+;;                          ("\C-m" lyqi:insert-pipe-and-return)
+;;                          ("$" lyqi:insert-pipe-and-return)))
+;;  '(lyqi:projects-language '(("~/src/lilypond" nederlands)
+;;                             ("~/Documents/LilyPond" italiano)
+;;                             ("~/Documents/LilyPond/Haendel/Opera/GiulioCesare" nederlands)))
+;;  '(lyqi:midi-backend 'osx)
+;;  '(lyqi:pdf-command "open")
+;;  '(lyqi:midi-command "open")
+;;  ;; ...
+;;  )
+
+;; ;; commented out 'cuz I wanna try the "amazing" lsp-java for working with lsp-mode
+;; (leaf eglot-java
+;; 	;; installed jdtls again, to "/Users/s/.emacs.d/share/eclipse.jdt.ls", the other version is installed with homebrew
+;; 	:straight t
+;; 	:hook java-mode-hook
+;; 	:config
+;; 	(setq eglot-java-workspace-folder "/Users/s/stuff/university/CS2040 Data Structures and Algorithms/AY2023ST2Src/")
+;; 	)
+
+
+;; gnus guide : https://github.com/redguardtoo/mastering-emacs-in-one-year-guide/blob/master/gnus-guide-en.org
+
+;;; chinese input!!! (C-\ to switch)
+
+(leaf pyim
+	;; C-\ to switch between chinese and english input methods
+	:straight t
+	:require t
+	:config
+	(leaf pyim-basedict		; without using this, the suggestions aren't good hahaha
+		:straight t
+		:require t
+		:config
+		(pyim-basedict-enable)							; 拼音词库，五笔用户 *不需要* 此行设置
+		)
+	(setq pyim-dcache-backend 'pyim-dregcache) ; 对低配置电脑使用更节省内存启动更快的引擎， *只对*拼音用户有效 
+	(setq default-input-method "pyim")
+	;; if the default dictionary isn't big enough, this may be of help (idk): https://github.com/redguardtoo/emacs.d#use-pinyin
+	)
+
+
+
+;; ;; don't need it, the defaults handle it so well I don't need to auto-switch
+;; (leaf sis
+;;  doc: "comes with a list that you can put functions in, that when trigerred, will help change input source automatically"
+;; 	:straight t
+;; 	)
+
+
+;; ;; 'cuz idk how to use it yet, under too much time pressure, gonna stick to basics
+;; ;; commented out 'cuz in favor of more modern solutions, this is the oldest one...
+;; homepage: https://jdee.sourceforge.net/rootpage.html
+;; user guide: https://jdee.sourceforge.net/jdedoc/html/jde-ug/jde-ug.html
+;; (leaf jdee
+;; 	:straight t
+;; 	:config
+;; 	(setq jdee-server-dir "~/myJars/")
+;; 	)
+(leaf gptel
+	:straight t
+	:init
+	(setq gptel-api-key +openai-api-key-kor) ;this shit needs paid account...
+	(setq gptel-model "gptel-3.5-turbo"))
+
+
+(leaf flycheck
+	:straight t
+	;; :global-minor-mode global-flycheck-mode
+	)
+
+(leaf lsp-java
+	;; guide linked from lsp-java github page: https://xpressrazor.wordpress.com/2020/11/04/java-programming-in-emacs/
+	;; man tried all sorts of other packages, as shown at the start of this video: https://www.youtube.com/watch?v=Bbjxn9yVNJ8
+	:straight t
+	:require t
+	:after lsp-mode
+	:init
+	(setq lsp-java-java-path +lsp-java-java-path)
+	(leaf dap-java
+		:require t)	
+	)
+
+
+(leaf nerd-icons
+	:straight t)
+
+(leaf tempel-collection
+	:straight t
+	:after tempel
+	:require t)
+
+;; ;; commented out 'cuz got error after I update all packages
+;; ;; un-emphasize when cursor is on element
+;; ;; will fail to detect elements that are nested inside "certain other elements", like comments or document titles
+;; (leaf org-appear
+;;   :straight t
+;;   :after org
+;;   :hook org-mode-hook
+;;   ;; hook it with org-modern if possible, 'cuz I want to see everything with default prefs in life.org
+;;   :defer-config                         ;; over-excessive defer here, but whatever
+;;   (setq org-appear-autoemphasis nil ;the only one that's on by default, like for /italic/, _underline_, +strikethrough+, etc.
+;;         org-appear-autoentities t
+;;         org-appear-autolinks nil
+;;         org-appear-autosubmarkers t))
+
+
+(defvar elpaca-installer-version 0.5)
+(defvar elpaca-directory (expand-file-name "elpaca/" user-emacs-directory))
+(defvar elpaca-builds-directory (expand-file-name "builds/" elpaca-directory))
+(defvar elpaca-repos-directory (expand-file-name "repos/" elpaca-directory))
+(defvar elpaca-order '(elpaca :repo "https://github.com/progfolio/elpaca.git"
+                              :ref nil
+                              :files (:defaults (:exclude "extensions"))
+                              :build (:not elpaca--activate-package)))
+(let* ((repo  (expand-file-name "elpaca/" elpaca-repos-directory))
+       (build (expand-file-name "elpaca/" elpaca-builds-directory))
+       (order (cdr elpaca-order))
+       (default-directory repo))
+  (add-to-list 'load-path (if (file-exists-p build) build repo))
+  (unless (file-exists-p repo)
+    (make-directory repo t)
+    (when (< emacs-major-version 28) (require 'subr-x))
+    (condition-case-unless-debug err
+        (if-let ((buffer (pop-to-buffer-same-window "*elpaca-bootstrap*"))
+                 ((zerop (call-process "git" nil buffer t "clone"
+                                       (plist-get order :repo) repo)))
+                 ((zerop (call-process "git" nil buffer t "checkout"
+                                       (or (plist-get order :ref) "--"))))
+                 (emacs (concat invocation-directory invocation-name))
+                 ((zerop (call-process emacs nil buffer nil "-Q" "-L" "." "--batch"
+                                       "--eval" "(byte-recompile-directory \".\" 0 'force)")))
+                 ((require 'elpaca)) 
+                 ((elpaca-generate-autoloads "elpaca" repo)))
+            (progn (message "%s" (buffer-string)) (kill-buffer buffer))
+          (error "%s" (with-current-buffer buffer (buffer-string))))
+      ((error) (warn "%s" err) (delete-directory repo 'recursive))))
+  (unless (require 'elpaca-autoloads nil t)
+    (require 'elpaca)
+    (elpaca-generate-autoloads "elpaca" repo)
+    (load "./elpaca-autoloads")))
+(add-hook 'after-init-hook #'elpaca-process-queues)
+(elpaca `(,@elpaca-order))
+
+
+(defmacro elpaca-leaf (order &rest body)
+  "Execute BODY in `leaf' declaration after ORDER is finished.
+If the :disabled keyword is present in body, the package is completely ignored.
+This happens regardless of the value associated with :disabled.
+The expansion is a string indicating the package has been disabled."
+  (declare (indent 1))
+  (if (memq :disabled body)
+      (format "%S :disabled by elpaca-leaf" order)
+    (let ((o order))
+      (when-let ((ensure (seq-position body :ensure)))
+				(setq o (if (null (nth (1+ ensure) body)) nil order)
+							body (append (seq-subseq body 0 ensure)
+													 (seq-subseq body (+ ensure 2)))))
+      `(elpaca ,o (leaf
+										,(if-let (((memq (car-safe order) '(quote \`)))
+															(feature (flatten-tree order)))
+												 (cadr feature)
+											 (elpaca--first order))
+										,@body)))))
+
+
+(elpaca-leaf eat
+	:doc "Emulate-A-Terminal"
+	:hook
+	(eshell-load-hook . eat-eshell-mode)
+	;; (eshell-load-hook . eat-eshell-visual-command-mode)
+	:defer-config
+	(setq eat-kill-buffer-on-exit t))
