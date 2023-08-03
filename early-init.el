@@ -99,6 +99,8 @@
 (push '(tool-bar-lines . 0) default-frame-alist)
 (push '(menu-bar-lines . 0) default-frame-alist)
 (push '(vertical-scroll-bars) default-frame-alist)
+(when (>= (string-to-number emacs-version) 29)
+	(push '(undecorated . t) default-frame-alist))
 ;; (menu-bar-mode -1)
 ;; (when (fboundp 'scroll-bar-mode) (scroll-bar-mode -1)) ;; scroll bar not useful as its behaviour is weird(too lazy to learn), and there's a percentage to show vertical position so...
 ;; (when (fboundp 'tool-bar-mode) (tool-bar-mode -1))

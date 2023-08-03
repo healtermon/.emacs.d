@@ -83,6 +83,8 @@ rst-mode
 java-mode
 
 (class "public class " (p (file-name-base (or (buffer-file-name) (buffer-name)))) " {" n> r> n "}")
+(fori "for (int i=0;i<" p ";++i){" n> n> "}")
+(forj "for (int j=0;j<" p ";++j){" n> n> "}")
 
 c-mode :when (re-search-backward "^\\S-*$" (line-beginning-position) 'noerror)
 
@@ -104,11 +106,6 @@ org-mode
 (java "#+begin_src java" n> r> n "#+end_src" :post (org-edit-src-code))
 (equation "\\begin{equation}" p n> r> n "\\end{equation}")
 
-
-java-mode
-
-(fori "for (int i=0;i<" p ";++i){" n> n> "}")
-(forj "for (int j=0;j<" p ";++j){" n> n> "}")
 
 ;; Local Variables:
 ;; mode: lisp-data

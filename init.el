@@ -56,7 +56,7 @@
 ;; - forge, for working with git forges
 ;; - transmission
 ;; - sgml-mode, for working with html files
-1;; - emms
+;; - emms
 ;; - proof-general, for working with proof assistants, targetd at intermediate to experts
 ;; - compile.el
 ;; - lingva, interface with google translate
@@ -77,6 +77,7 @@
 ;; - org-modern-indent, makes fringe area indent show properly indented instead of disabled when org-indent is used with org-modern
 ;; - lilypond-auto-insert-mode, more lilypond auto-insertions in emacs
 ;; - using English dictionaries in Emacs: https://irreal.org/blog/?p=7303
+;; - auto-sudoedit
 
 ;;;;; Cool packages that I want to install later on
 ;; - persp-mode, workspace manager
@@ -261,9 +262,10 @@ Comparison to use-package (that are not on github)
 (elpaca-leaf (once :type git :host github :repo "emacs-magus/once") ;; "TODO: ':type' in recipe is not supported by Elpaca, but it still works. Why?"
 	:doc "macros for adding code to run on the first time a hook is run")
 
-(elpaca-leaf use-package
+(leaf use-package
 	:doc "macros to neaten configuration. I keep it around to slowly convert my init file and try others' code blocks.
 If you wanna expand use-package macros, if there are no errors in the config, you can set use-package-expand-minimally to t to get a much more readable expansion"
+	:tag "built-in"
 	:config
 	(setq use-package-hook-name-suffix nil))
 (elpaca-leaf elpaca-use-package
@@ -305,6 +307,14 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
 					 gcs-done))
 (add-hook 'elpaca-after-init-hook #'+message-time-from-after-init)
 ;;; Default configs that are absolutely shared across all systems
+(when +apexless
+	(setq mac-command-modifier      'meta
+				ns-command-modifier       'meta
+				mac-option-modifier       'alt
+				ns-option-modifier        'alt
+				mac-right-option-modifier 'none
+				ns-right-option-modifier  'none))
+
 (setq user-mail-address "healtermon@gmail.com")
 (setq user-full-name "L.R.J, Samuel")
 
@@ -379,6 +389,8 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
 ;; display match count when using isearch
 (setq isearch-lazy-count t)
 
+(pixel-scroll-precision-mode 1)
+
 ;;;; Elisp Programming
 ;; in Emacs, elisp programming is more important than other sorts of programming,
 ;; equivalent to whether the app settings work or not
@@ -416,6 +428,7 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
    ("M-v" . +scroll-half-page-up)
    ("C-a" . +move-beginning-of-line))
   (xah-fly-command-map
+	 ("w" . xah-shrink-whitespaces)
    ("e" . puni-backward-kill-word)
    ("r" . puni-forward-kill-word)
    ("n" . +xfk-command-mode-n)
@@ -643,6 +656,13 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
 ;;   :hook
 ;;   prog-mode-hook)
 
+(elpaca-leaf xr
+	:doc "inverse of rx, converts emacs lisp regexp to rx form")
+
+(leaf lisp-mode
+	:mode ("\\.eld\\'" . lisp-data-mode)
+	)
+
 ;;;; ELisp Debugging
 ;; see https://github.com/progfolio/.emacs.d/blob/master/init.org#debugging
 
@@ -710,6 +730,10 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
 (setenv "JAVA_HOME" +java-home-folder)
 (defvar +lsp-java-java-path (concat +java-home-folder "bin/java"))
 
+(defvar +tempel-path (expand-file-name "templates.eld" user-emacs-directory))
+
+(defvar +elixir-ls-build-output-path (concat +stuff-dir "compro/elixir-lsp/elixir-ls/outputsam") "output directory of mix build tool. It has language_server.sh, and launch.sh to decide how to initialise the language server, hence you can't just have the elixir-ls executable on path, you need to call this script to start it.")
+
 
 (defun +delete-file-visited-by-buffer (buffername)
   "Delete the file visited by the buffer named BUFFERNAME."
@@ -772,6 +796,14 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
 (defun +elisp-mode ()
 	(interactive)
 	(emacs-lisp-mode))
+
+;; idk where I got this from, the original was named "rex/consult-grep-in-a-directory"
+(defun +consult-grep-in-a-directory ()
+  "Query the user for a directory to grep in."
+  (interactive)
+  (let ((current-prefix-arg 1))
+    (call-interactively 'consult-ripgrep)))
+
 ;;; The rest of Default Configuration
 (leaf recentf
   :doc "recent files browsing feature"
@@ -1264,6 +1296,7 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
 	;; Require trigger prefix before template name when completing.
 	;; :custom
 	(setq tempel-trigger-prefix "<")
+	(setq tempel-path +tempel-path)
 	
 	(defun tempel-setup-capf ()
 		;; Add the Tempel Capf to `completion-at-point-functions'.
@@ -1282,6 +1315,9 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
 	;; (add-hook 'prog-mode-hook #'tempel-abbrev-mode)
 	;; (global-tempel-abbrev-mode)
 	)
+
+(elpaca-leaf tempel-collection
+	:doc "more templates. Don't need to require, as during autoloading it runs an (eval-when-compile 'tempel (add-to-list <new templates> tempel-template-sources)), which is genius.")
 
 
 (elpaca-leaf yasnippet
@@ -1491,7 +1527,6 @@ Notes:
 	:init
 	(consult-org-roam-mode 1))
 
-
 ;; org-roam-ui
 (elpaca websocket)
 (elpaca simple-httpd)
@@ -1510,15 +1545,16 @@ Notes:
 
 (elpaca-wait)
 ;;; LaTeX related 
-(elpaca-leaf xenops
-	:doc "automatic live math preview that gets out of your way"
-	:hook
-	latex-mode-hook
-	LaTeX-mode-hook
-	org-mode-hook
-	:config
-	(setq xenops-reveal-on-entry t)
-	(setq xenops-math-image-scale-factor 1.25))
+;; ;; TODO fix this, it doesn't work because "preview" for latex previewing isn't found, which can't be loaded 'cuz the tex stuff isn't found. So fix the tex stuff, maybe reinstall texlive distribution...
+;; (elpaca-leaf xenops
+;; 	:doc "automatic live math preview that gets out of your way"
+;; 	:hook
+;; 	latex-mode-hook
+;; 	LaTeX-mode-hook
+;; 	org-mode-hook
+;; 	:config
+;; 	(setq xenops-reveal-on-entry t)
+;; 	(setq xenops-math-image-scale-factor 1.25))
 
 ;; TODO fix this: this shit doesn't work because the directory doesn't even exist anymore. Where is it? Homebrew? Nix? Oh my. No time for this, I don't even use this info manual.
 ;; for tex info. The LaTeX lsp digestif's creator can't live without this
@@ -2085,7 +2121,9 @@ variable `project-local-identifier' to be considered a project."
 	(flymake-mode-map
 	 ("C-#" . flymake-goto-next-error)
 	 ("C-$" . flymake-goto-prev-error)))
-(elpaca-leaf eglot
+(leaf eglot 														; use built-in eglot
+	:doc "Emacs Glot(EGlot)"
+	:tag "built-in"
 	:hook
 	((python-mode-hook
 		c-mode-hook
@@ -2107,6 +2145,7 @@ variable `project-local-identifier' to be considered a project."
 																			 )))))
 	(add-hook 'python-mode-hook #'+python-eglot-config)
 	:defer-config
+	(add-to-list 'eglot-server-programs '(elixir-ts-mode "language_server.sh"))
 	(setq eglot-events-buffer-size 0) ;; In the name of speed, this stops eglot from logging the json events of lsp server
 	(setq completion-category-overrides '((eglot (styles orderless-fast))))
 
@@ -2344,6 +2383,10 @@ variable `project-local-identifier' to be considered a project."
 	:hook (marginalia-mode-hook . all-the-icons-completion-marginalia-setup) ; makes the mode follow marginalia-mode when on and off
 	)
 
+
+(elpaca-leaf nerd-icons
+	:doc "on first install, run nerd-icons-install-fonts")
+
 ;; Addtional syntax highlighting for dired
 (elpaca-leaf diredfl
 	:hook
@@ -2499,6 +2542,7 @@ This function is added to the `standard-themes-post-load-hook'."
 	(setq doom-modeline-enable-word-count t)
 	(setq doom-modeline-time-icon t)
 	(setq doom-modeline-minor-modes t)
+	(setq doom-modeline-bar-width 1)
 	;; (setq doom-modeline-checker-simple-format t)
 	;; (setq doom-modeline-workspace-name t)
 	;; (setq doom-modeline-persp-name t)
@@ -2930,8 +2974,6 @@ This function is added to the `standard-themes-post-load-hook'."
 	(elm-mode-hook . elm-format-on-save-mode) ; requires elm-format to be installed(outside of emacs)
 	(elm-mode-hook . elm-indent-mode))
 
-(elpaca-leaf elixir-mode)
-
 ;; lots of languages configured with leaf macro in this link, scala, OCaml, swift, VB, Web-mode, yarn,js,ts-comint,json,yaml,css,nxml,: https://github.com/ncaq/.emacs.d/blob/master/init.el#L797
 (elpaca-leaf raku-mode
 	:defer-config
@@ -2951,6 +2993,9 @@ This function is added to the `standard-themes-post-load-hook'."
 	:custom
 	(plantuml-default-exec-mode . 'jar)
 	(plantuml-jar-path . "~/bin/plantuml.jar")) ; no time to execute?
+
+(elpaca-leaf ponylang-mode)
+(elpaca-leaf pony-snippets)
 
 ;;; TESTING GROUNDS
 
@@ -3222,6 +3267,30 @@ TODAYP is t when the current agenda view is on today."
 (elpaca-leaf disaster                          ; TODO TEST
 	:doc "Disassemble C, C++ or Fortran code under cursor")
 
+;;; chinese input!!! (C-\ to switch)
+
+(elpaca-leaf pyim
+	;; C-\ to switch between chinese and english input methods
+	:require t
+	:config
+	(setq pyim-dcache-backend 'pyim-dregcache) ; 对低配置电脑使用更节省内存启动更快的引擎， *只对*拼音用户有效 
+	(setq default-input-method "pyim")
+	;; if the default dictionary isn't big enough, this may be of help (idk): https://github.com/redguardtoo/emacs.d#use-pinyin
+	)
+(elpaca-leaf pyim-basedict		; without using this, the suggestions aren't good hahaha Edit: well apparently even this ain't good enough, time to use TRIME
+	:require t
+	:config
+	(pyim-basedict-enable)							; 拼音词库，五笔用户 *不需要* 此行设置
+	)
+
+
+;; ;; don't need it, the defaults handle it so well I don't need to auto-switch
+;; (leaf sis
+;;  doc: "comes with a list that you can put functions in, that when trigerred, will help change input source automatically"
+;; 	:straight t
+;; 	)
+
+
 ;;; The Rest
 (elpaca-leaf (eat :type git
 									:host codeberg
@@ -3363,15 +3432,8 @@ TODAYP is t when the current agenda view is on today."
 	)
 
 (elpaca-leaf wolfram-mode
-	:doc "major mode for editing Mathematica text files"
-	)
+	:doc "major mode for editing Mathematica text files")
 
-
-(defun rex/consult-grep-in-a-directory ()
-  "Query the user for a directory to grep in."
-  (interactive)
-  (let ((current-prefix-arg 1))
-    (call-interactively 'consult-ripgrep)))
 
 
 
@@ -3580,8 +3642,6 @@ TODAYP is t when the current agenda view is on today."
 
 (elpaca-leaf solidity-mode)
 
-(elpaca-leaf xr)
-
 (elpaca-leaf djvu)
 
 (leaf doc-view
@@ -3671,29 +3731,6 @@ TODAYP is t when the current agenda view is on today."
 
 ;; gnus guide : https://github.com/redguardtoo/mastering-emacs-in-one-year-guide/blob/master/gnus-guide-en.org
 
-;;; chinese input!!! (C-\ to switch)
-
-(elpaca-leaf pyim
-	;; C-\ to switch between chinese and english input methods
-	:require t
-	:config
-	(setq pyim-dcache-backend 'pyim-dregcache) ; 对低配置电脑使用更节省内存启动更快的引擎， *只对*拼音用户有效 
-	(setq default-input-method "pyim")
-	;; if the default dictionary isn't big enough, this may be of help (idk): https://github.com/redguardtoo/emacs.d#use-pinyin
-	)
-(elpaca-leaf pyim-basedict		; without using this, the suggestions aren't good hahaha Edit: well apparently even this ain't good enough, time to use TRIME
-	:require t
-	:config
-	(pyim-basedict-enable)							; 拼音词库，五笔用户 *不需要* 此行设置
-	)
-
-
-;; ;; don't need it, the defaults handle it so well I don't need to auto-switch
-;; (leaf sis
-;;  doc: "comes with a list that you can put functions in, that when trigerred, will help change input source automatically"
-;; 	:straight t
-;; 	)
-
 
 ;; ;; 'cuz idk how to use it yet, under too much time pressure, gonna stick to basics
 ;; ;; commented out 'cuz in favor of more modern solutions, this is the oldest one...
@@ -3726,12 +3763,47 @@ TODAYP is t when the current agenda view is on today."
 	)
 
 
-(elpaca-leaf nerd-icons)
+(elpaca-leaf mix
+	:doc "provides a minor mode for integration with Mix, a build tool that ships with Elixir."
+	:hook
+	(elixir-mode-hook . mix-minor-mode))
 
-(elpaca-leaf tempel-collection
-	:after tempel
-	:require t)
+(elpaca-leaf exunit
+	:doc "ExUnit integration."
+	:hook elixir-mode-hook)
+
+(elpaca-leaf web-mode)
 
 
+(elpaca-leaf elixir-mode
+	:emacs< 29
+	:hook
+	+elixir-prettify-symbols-setup
+	)
 
+;; elixir development setup: https://medium.com/@victor.nascimento/elixir-emacs-development-2023-edition-1a6ccc40629
+(elpaca-leaf elixir-ts-mode
+	:doc "run (elixir-ts-install-grammar) to install grammar"
+	:emacs>= 29
+	:hook 
+	+elixir-prettify-symbols-setup
+	)
+(add-to-list 'exec-path +elixir-ls-build-output-path t)
 
+(defun +elixir-prettify-symbols-setup ()
+	(push '(">=" . ?\u2265) prettify-symbols-alist)
+	(push '("<=" . ?\u2264) prettify-symbols-alist)
+	(push '("!=" . ?\u2260) prettify-symbols-alist)
+	(push '("==" . ?\u2A75) prettify-symbols-alist)
+	(push '("=~" . ?\u2245) prettify-symbols-alist)
+	(push '("<-" . ?\u2190) prettify-symbols-alist)
+	(push '("->" . ?\u2192) prettify-symbols-alist)
+	(push '("<-" . ?\u2190) prettify-symbols-alist)
+	(push '("|>" . ?\u25B7) prettify-symbols-alist))
+
+;; ;; TODO try later
+;; (elpaca-try '(democratize :type git :host sourcehut :repo "flandrew/democratize")
+;; )
+
+;; ;; TODO fix, idk how to use elpaca
+;; (elpaca-try '(:package-name "biome" :protocol https :fetcher github :repo "SqrtMinusOne/biome"))
