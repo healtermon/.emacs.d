@@ -97,13 +97,34 @@
 
 ;; don't need 'em UI, disable here to hopefully start-up faster, replaces code below which was in init.el
 (push '(tool-bar-lines . 0) default-frame-alist)
-(push '(menu-bar-lines . 0) default-frame-alist)
-(push '(vertical-scroll-bars) default-frame-alist)
-(when (>= (string-to-number emacs-version) 29)
-	(push '(undecorated . t) default-frame-alist))
-;; (menu-bar-mode -1)
-;; (when (fboundp 'scroll-bar-mode) (scroll-bar-mode -1)) ;; scroll bar not useful as its behaviour is weird(too lazy to learn), and there's a percentage to show vertical position so...
 ;; (when (fboundp 'tool-bar-mode) (tool-bar-mode -1))
+(push '(menu-bar-lines . 0) default-frame-alist)
+;; (menu-bar-mode -1)
+(push '(vertical-scroll-bars) default-frame-alist)
+;; (when (fboundp 'scroll-bar-mode) (scroll-bar-mode -1)) ;; scroll bar not useful as its behaviour is weird(too lazy to learn), and there's a percentage to show vertical position so...
+
+(when +apexless
+	;; ;; COMMENTED OUT 'cuz I copied functions that add and remove these from frame now, more convenient.
+	;; (push '(undecorated . t) default-frame-alist)
+	;; ;; https://www.reddit.com/r/emacs/comments/b2r2oj/is_it_possible_to_disable_or_hide_the_titlebar_in/
+	;; (push '(drag-internal-border . 1) default-frame-alist)
+	;; (push '(internal-border-width . 5) default-frame-alist)
+
+	;; ;; COMMENTED OUT 'cuz toggle-frame-maximized works now (emacs 29 railwaycat/emacsmacport)
+	;; ;; for fullscreen
+	;; (setq default-frame-alist	;; no (toggle-frame-maximized) as you can't move or resize the window without undoing it, and no fullscreen 'cuz stupid notch
+	;; 			(append ;; these parameters perfectly fit my screen, like (toggle-frame-maximized), gotten by (frame-height)+1 and (frame-width)
+	;; 			 '((top . 0)
+	;; 				 (left . 0)
+	;; 				 (width . 187)
+	;; 				 (height . 63))
+	;; 			 default-frame-alist))
+	)
+
+
+(message "%s" default-frame-alist) ;; i guess since this is in early-init.el, this message goes straight to stdout (run emacs via command line in foreground)!!!
+;; After early-init.el, the frame is generated. So for example, the below line is useless:
+;; (toggle-frame-fullscreen)
 
 
 ;; Local Variables:

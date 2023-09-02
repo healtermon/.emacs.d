@@ -43,6 +43,7 @@
 ;; - iedit
 ;; - archive-rpm
 ;; - org-block-capf, completion for org blocks with "<" prepended https://github.com/xenodium/org-block-capf
+;; - compile-multi, https://github.com/mohkale/compile-multi#deviations-from-emacs-multi-compile
 ;;;;; Packages I'm excited about 
 ;; - Delve, org-roam notes browser, integration with org-roam-ui, just wait and see
 
@@ -90,7 +91,6 @@
 nil
 ;;; Config Debugging
 ;; idk where to put this, here will do.
-
 (setq +init-file-debug t)
 (setq debug-on-error nil)
 (if +init-file-debug
@@ -110,30 +110,30 @@ nil
 ;;; Package Managers
 ;; I have 2 package managers 'cuz moving slowly to Elpaca, from Straight
 
-;; ;; Commented out 'cuz I wanna try only using Elpaca
-;; ;; Bootstrap `straight.el' package manager
-;; ;; I copied alexlugit's neatened-up bootstrap code version 6 at https://github.com/alexluigit/emacs-grandview/blob/master/init.el
-;; (setq straight-use-package-by-default nil ; makes each use-package form also invoke straight.el to install the package, unless otherwise specified
-;;       straight-vc-git-default-clone-depth 1
-;;       straight-check-for-modifications '(check-on-save find-when-checking) ;; speeds up straight initialisation
-;;       straight-repository-branch "develop"
-;;       straight-hosts '((github "github.com" ".git")
-;;                        (gitlab "gitlab.com" ".git")
-;;                        (sourcehut "git.sr.ht" "") ; Apparently only works without the ".git". less confusing for git newbies, more confusing for people used to the other sites!
-;;                        (bitbucket "bitbucket.com" ".git")
-;;                        (codeberg "codeberg.org" ".git")))
-;; (let ((bootstrap (locate-user-emacs-file "straight/repos/straight.el/bootstrap.el"))
-;;       (script "https://raw.githubusercontent.com/raxod502/straight.el/develop/install.el")
-;;       (file-name-handler-alist nil))
-;;   ;; modified straight bootstrap code, initialise straight
-;;   (unless (file-exists-p bootstrap)
-;;     (with-current-buffer (url-retrieve-synchronously script 'silent 'inhibit-cookies)
-;;       (goto-char (point-max)) (eval-print-last-sexp)))
-;;   (load bootstrap nil 'nomessage)
+;; Commented out 'cuz I wanna try only using Elpaca
+;; Bootstrap `straight.el' package manager
+;; I copied alexlugit's neatened-up bootstrap code version 6 at https://github.com/alexluigit/emacs-grandview/blob/master/init.el
+(setq straight-use-package-by-default nil ; makes each use-package form also invoke straight.el to install the package, unless otherwise specified
+      straight-vc-git-default-clone-depth 1
+      straight-check-for-modifications '(check-on-save find-when-checking) ;; speeds up straight initialisation
+      straight-repository-branch "develop"
+      straight-hosts '((github "github.com" ".git")
+                       (gitlab "gitlab.com" ".git")
+                       (sourcehut "git.sr.ht" "") ; Apparently only works without the ".git". less confusing for git newbies, more confusing for people used to the other sites!
+                       (bitbucket "bitbucket.com" ".git")
+                       (codeberg "codeberg.org" ".git")))
+(let ((bootstrap (locate-user-emacs-file "straight/repos/straight.el/bootstrap.el"))
+      (script "https://raw.githubusercontent.com/raxod502/straight.el/develop/install.el")
+      (file-name-handler-alist nil))
+  ;; modified straight bootstrap code, initialise straight
+  (unless (file-exists-p bootstrap)
+    (with-current-buffer (url-retrieve-synchronously script 'silent 'inhibit-cookies)
+      (goto-char (point-max)) (eval-print-last-sexp)))
+  (load bootstrap nil 'nomessage)
 
-;;   ;; notes on straight:
-;;   ;; it's used like (straight-use-package '(name :keyword keywordval ...)) where name is the feature ; found by going into the code and seeing the name provided in the file by (provide 'name)
-;;   )
+  ;; notes on straight:
+  ;; it's used like (straight-use-package '(name :keyword keywordval ...)) where name is the feature ; found by going into the code and seeing the name provided in the file by (provide 'name)
+  )
 
 
 ;; Bootstrap `elpaca.el' package manager
@@ -272,8 +272,7 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
 	:doc "for use-package integration with elpaca"
 	:config
 	(elpaca-use-package-mode))
-(elpaca-leaf bind-key
-	:doc "macros for binding keys, comes with use-package too")
+(leaf bind-key :doc "macros for binding keys, comes with use-package too")
 
 (elpaca-leaf setup
 	:doc "more configuration macros, yay!")
@@ -389,7 +388,7 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
 ;; display match count when using isearch
 (setq isearch-lazy-count t)
 
-(pixel-scroll-precision-mode 1)
+;; (pixel-scroll-precision-mode 1) ;; TODO doesn't work on mitsuharu emacs-mac version, undoing the smooth scroll instead??? Check if the scroll steps affect this!
 
 ;;;; Elisp Programming
 ;; in Emacs, elisp programming is more important than other sorts of programming,
@@ -397,9 +396,6 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
 ;; suggestions: https://old.reddit.com/r/emacs/comments/zfwsc0/please_recommend_packages_for_editing_elisp/
 (elpaca-leaf crux
 	:doc "lots of random useful functions from the emacs Prelude 'distro'. It's up here 'cuz of crux-find-user-init-file")
-(elpaca-leaf restart-emacs
-	:doc "to restart emacs, durr. Obsolete in emacs 29"
-	:emacs< 29)
 
 (elpaca-leaf xah-fly-keys
   :require t
@@ -792,10 +788,7 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
     (vterm-send-return)
     (switch-to-buffer-other-window buf))) 
 
-
-(defun +elisp-mode ()
-	(interactive)
-	(emacs-lisp-mode))
+(defalias '+elisp-mode (symbol-function 'emacs-lisp-mode))
 
 ;; idk where I got this from, the original was named "rex/consult-grep-in-a-directory"
 (defun +consult-grep-in-a-directory ()
@@ -803,6 +796,25 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
   (interactive)
   (let ((current-prefix-arg 1))
     (call-interactively 'consult-ripgrep)))
+
+;; these 2 below are from https://github.com/d12frosted/homebrew-emacs-plus/issues/588
+(defun +toggle-undecorated-frame-maximised ()
+  "Toggle the 'undecorated' parameter and frame maximized state for the current frame."
+  (interactive)
+  (let* ((undecorated-value (frame-parameter nil 'undecorated))
+         (new-value (not undecorated-value)))
+    (set-frame-parameter nil 'undecorated new-value)
+    (toggle-frame-maximized))
+  (message "Undecorated frame setting and maximized state toggled."))
+
+(defun +toggle-undecorated-frame-unmaximised ()
+  "Toggle the 'undecorated' parameter for the current frame."
+  (interactive)
+  (let* ((undecorated-value (frame-parameter nil 'undecorated))
+         (new-value (not undecorated-value)))
+    (set-frame-parameter nil 'undecorated new-value))
+  (message "Undecorated frame setting toggled."))
+
 
 ;;; The rest of Default Configuration
 (leaf recentf
@@ -847,19 +859,13 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
   (display-time-24hr-format . t)            ; use hh:mm format instead
   :config
   (display-time-mode t))
+
 (when +apexless
 	(column-number-mode 1))
 
-(cond (+apexless ;; no (toggle-frame-maximized) as you can't move or resize the window without undoing it, and no fullscreen 'cuz stupid notch
-       (setq default-frame-alist
-             (append ;; these parameters perfectly fit my screen, like (toggle-frame-maximized), gotten by (frame-height)+1 and (frame-width)
-              '((top . 0)
-                (left . 0)
-                (width . 187)
-                (height . 63))
-              default-frame-alist)))
-      (+mango nil)
-      (t (toggle-frame-fullscreen)))
+;; to get fullscreen immediately when emacs opens, after the frame loads after early-init.el
+(when +apexless (+toggle-undecorated-frame-maximised))
+
 ;;; essential packages for everyone
 
 (elpaca-leaf which-key
@@ -1197,7 +1203,7 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
   ;;       (concat dired-omit-files (rx (or "" (seq line-start "." (zero-or-more not-newline) line-end)))))
   )
 
-(elpaca-leaf dirvish                           ;; I don't know why this isn't bugged out now.
+(elpaca-leaf dirvish ;; I don't know why this isn't bugged out now.
 	:if +apexless
 	:bind                ; Bind `dirvish|dirvish-side|dirvish-dwim' as you see fit
 	(("C-c f" . dirvish-fd)
@@ -1230,7 +1236,6 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
 	(dirvish-reuse-session . nil)
 	(dirvish-attributes . '(all-the-icons file-size collapse subtree-state vc-state git-msg))
 	(dired-listing-switches . "-l --almost-all --human-readable --time-style=long-iso --group-directories-first --no-group")
-	(dirvish-preview-dispatchers . (cl-substitute 'pdf-preface 'pdf dirvish-preview-dispatchers)) ;requires pdftoppm executable
 	;; Height
 	;; '(25 . 35) means
 	;;   - height in single window sessions is 25
@@ -1241,6 +1246,7 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
 																 :right (omit yank index)))
 	(dirvish-time-format-string . "%Y/%m/%d-%R")
 	:defer-config  
+	(setq dirvish-preview-dispatchers (cl-substitute 'pdf-preface 'pdf dirvish-preview-dispatchers)) ;requires pdftoppm executable ;; Who knows why it can't be in setq instead of defer-config,
 	(dirvish-peek-mode) ;; shows preview minibuffer when scrolling through find-file minibuffer
 	(dirvish-side-follow-mode)
 	)
@@ -1386,18 +1392,20 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
 	:require t
 	:after org)
 (elpaca-leaf org-download
+	:doc "org-download-clipboard doesn't seem to work, just drag the image in! It'll download automatically since org-download method is set to `directory'."
 	:after org
 	:require t
 	:setq
 	(org-download-method . 'directory)
 	:setq-default
-	(org-download-image-directory . +org-download-image-directory)
+	(org-download-image-dir . +org-download-image-directory)
 	)
+
 
 (elpaca emacsql)
 (elpaca magit-section)
 (elpaca emacsql-sqlite)
-(elpaca (emacsql-sqlite3 :type git :host github :repo "emacsattic/emacsql-sqlite3"));; sqlite3 for +termux, just load them both, I can't care to find a predicate version of :straight keyword
+(elpaca '(emacsql-sqlite3 :type git :host github :repo "emacsattic/emacsql-sqlite3"));; sqlite3 for +termux, just load them both, I can't care to find a predicate version of :straight keyword
 (elpaca-leaf org-roam
 	;; if you ever wanna rename your file titles, look at https://org-roam.discourse.group/t/does-renaming-title-no-longer-renames-the-filename/2018
 	:init
@@ -1435,7 +1443,6 @@ Dislikes:
 Hobbies:
 Jobs:
 Addresses:
-Emails:
 Dreams:
 Views on Life:
 Contact Mediums:
@@ -2132,6 +2139,7 @@ variable `project-local-identifier' to be considered a project."
 		nix-mode-hook
 		clojure-mode-hook
 		julia-mode-hook
+		scala-mode-hook
 		;; java-mode-hook
 		) . eglot-ensure)
 	:preface
@@ -2496,16 +2504,22 @@ variable `project-local-identifier' to be considered a project."
 
 
 		(set-face-attribute 'fixed-pitch nil :family "Hack" :height 1.0)
-		(defun my-standard-themes-custom-faces ()
-			"My customizations on top of the Standard themes.
-This function is added to the `standard-themes-post-load-hook'."
-			(set-background-color "#212121"))
+		;; ;; COMMENTED OUT 'cuz NO NEED; i figured out how to customize the color at a deeper level
+		;; (defun my-standard-themes-custom-faces ()
+		;; 	"My customizations on top of the Standard themes.
+		;; This function is added to the `standard-themes-post-load-hook'."
+		;; 	(set-background-color "#212121"))
 
-		;; Using the hook lets our changes persist when we use the commands
-		;; `standard-themes-toggle', `standard-themes-load-dark',
-		;; `standard-themes-load-light'.
-		(add-hook 'standard-themes-post-load-hook #'my-standard-themes-custom-faces)
+		;; ;; Using the hook lets our changes persist when we use the commands
+		;; ;; `standard-themes-toggle', `standard-themes-load-dark',
+		;; ;; `standard-themes-load-light'.
+		;; (add-hook 'standard-themes-post-load-hook #'my-standard-themes-custom-faces)
 
+		;; if you customise the colors like below, and use consult-theme to switch themes (`standard-themes-post-load-hook' is not run), standard-dark will remain with the customisations!
+		(setq standard-dark-palette-overrides '((bg-main "#212121")
+																						(bg-dim "#414141")))
+
+		;; loads theme and runs `standard-themes-post-load-hook'
 		(standard-themes-load-dark)
 		)
 	)
@@ -2979,7 +2993,6 @@ This function is added to the `standard-themes-post-load-hook'."
 	:defer-config
 	(setq raku-indent-offset 2))
 
-(elpaca-leaf scala-mode)
 
 (elpaca-leaf swift-mode)
 (elpaca-leaf swift-helpful
@@ -3457,6 +3470,7 @@ TODAYP is t when the current agenda view is on today."
 	(setq lsp-lens-enable t)
 	(setq lsp-completion-show-detail t)
 	(setq lsp-completion-show-kind t)
+	(setq lsp-keep-workspace-alive nil)
 
 	(setq lsp-headerline-breadcrumb-enable nil) ; annoying!
 	(setq lsp-intelephense-multi-root nil)			; don't scan unnecessary projects
@@ -3592,23 +3606,6 @@ TODAYP is t when the current agenda view is on today."
 	:config
 	(matlab-cedet-setup))
 
-(elpaca-leaf ocp-indent
-	:when +apexless
-	:preface
-	(add-to-list 'load-path "/Users/s/.opam/default/share/emacs/site-lisp")
-	:require t)
-(elpaca-leaf merlin
-	:config
-	(let ((opam-share (ignore-errors (car (process-lines "opam" "var" "share")))))
-		(when (and opam-share (file-directory-p opam-share))
-			;; Register Merlin
-			(add-to-list 'load-path (expand-file-name "emacs/site-lisp" opam-share))
-			(autoload 'merlin-mode "merlin" nil t nil)
-			;; Automatically start it in OCaml buffers
-			(add-hook 'tuareg-mode-hook 'merlin-mode t)
-			(add-hook 'caml-mode-hook 'merlin-mode t)
-			;; Use opam switch to lookup ocamlmerlin binary
-			(setq merlin-command 'opam))))
 
 (elpaca-leaf csv-mode)
 
@@ -3776,6 +3773,7 @@ TODAYP is t when the current agenda view is on today."
 
 
 (elpaca-leaf elixir-mode
+	;; elixir-mode doesn't use treesitter, and so is obsolete since emacs 29 since 29 comes with treesitter
 	:emacs< 29
 	:hook
 	+elixir-prettify-symbols-setup
@@ -3801,9 +3799,197 @@ TODAYP is t when the current agenda view is on today."
 	(push '("<-" . ?\u2190) prettify-symbols-alist)
 	(push '("|>" . ?\u25B7) prettify-symbols-alist))
 
-;; ;; TODO try later
-;; (elpaca-try '(democratize :type git :host sourcehut :repo "flandrew/democratize")
-;; )
+(elpaca-leaf '(biome :host github :repo "SqrtMinusOne/biome")
+	:doc "interface to Open Meteo Free Forecasting API. Docs here: https://open-meteo.com/en/docs#latitude=1.2897&longitude=103.8501&hourly=temperature_2m,visibility&daily=temperature_2m_min,winddirection_10m_dominant&current_weather=true&timezone=Asia%2FSingapore"
+	:require t
+	:config (setq biome-query-coords
+								'(("Helsinki, Finland" 60.16952 24.93545)
+									("Berlin, Germany" 52.52437 13.41053)
+									("Dubai, UAE" 25.0657 55.17128)
+									("Singaopre, SG" 1.280270 103.851959))))
 
-;; ;; TODO fix, idk how to use elpaca
-;; (elpaca-try '(:package-name "biome" :protocol https :fetcher github :repo "SqrtMinusOne/biome"))
+
+(elpaca-leaf sicp
+	:doc "info version for SICP"
+	:require t)
+
+;; this sets up all ocaml-related stuff already! go read the loaded file for more details.
+
+;; ## added by OPAM user-setup for emacs / base ## 56ab50dc8996d2bb95e7856a6eddb17b ## you can edit, but keep this line
+(require 'opam-user-setup "~/.emacs.d/opam-user-setup.el")
+;; ## end of OPAM user-setup addition for emacs / base ## keep this line
+
+
+
+
+(elpaca-leaf scala-mode
+	:hook
+	lsp
+	lsp-format-before-save
+	:config
+	)
+(elpaca-leaf lsp-metals)
+(elpaca-leaf sbt-mode
+	:preface
+	(defun +start-sbt-here ()
+		(interactive)
+		(require 'sbt-mode)
+		(setq sbt:buffer-project-root default-directory)
+		(sbt-start)
+		)
+	:doc "for usage with Scala Build Tool(sbt).
+If the directory found by sbt-start finds the wrong directory,
+set sbt:buffer-project-root to nil and try again from the scala file."
+	:commands sbt-start sbt-command
+	:bind
+	(sbt-mode-map
+	 ("M-t" . comint-previous-input)
+	 )
+	(scala-mode-map
+	 ("C-c C-c" . sbt-do-run))
+	:config
+	;; WORKAROUND: https://github.com/ensime/emacs-sbt-mode/issues/31
+	;; allows using SPACE when in the minibuffer
+	(substitute-key-definition
+	 'minibuffer-complete-word
+	 'self-insert-command
+	 minibuffer-local-completion-map)
+
+	;; sbt-supershell kills sbt-mode:  https://github.com/hvesalai/emacs-sbt-mode/issues/152
+	(defvar sbt:program-options '("-Dsbt.supershell=false"))
+	)
+
+(elpaca-leaf '(ammonite-term-repl :host github :repo "zwild/ammonite-term-repl") )
+
+
+;; ELPACA TUTORIAL WITH WEIRD ESOLANG AS EXAMPLE LMAO
+;; after the initial config has run,
+;; to queue something, give elpaca a recipe, ":repo" can be just the full url to the git repo, or a combination of ":host github" and ":repo wkirschbaum/surface-ts-mode". Note it doesn't have the ".git" behind. This will turn into some URL which I don't know how to view tbh... just know that if it works, elpaca-browse <insert package name here> will work and direct to the correct website.
+;; TODO how to check what's in the queues?
+;; after running the elpaca macro, u will see "*elpaca log*" buffer. This buffer means there's no error in processing the recipe(TODO find out for sure).
+;; then (elpaca-process-queues) to process. This will return a long-arse elisp thing, mentioning the recipe given, and the steps generated that just ran.
+;; check .emacs.d/elpaca/repos and .emacs.d/elpaca/build to see if it worked.
+;; it will link the package as well, so if you "M-x load-library RET surface-ts-mode", you should see it.
+;; The recipe given can be quoted or unquoted, unlike in straight, as "elpaca" is a macro. To keep compatibility with straight, I choose to quote, and also in the recipe, use ":host" instead of ":fetcher".
+;; elpaca-fetch git-fetches the repos, requiring the git repos to already be inside .emacs.d/elpaca/repos folder. elpaca-update is hence probably git-pull TODO check if my guess is correct, that elpaca-update does git-pull?
+(elpaca-leaf '(surface-ts-mode :repo "https://github.com/wkirschbaum/surface-ts-mode.git")
+	:doc "the installation is fucked, go look at the git repo"
+	:require t)
+;; (elpaca-process-queues)
+
+
+
+(elpaca-leaf '(xht :host sourcehut :repo "flandrew/xht")
+	:doc "eXtensive Hash Table library")
+(elpaca-leaf '(democratize :host sourcehut :repo "flandrew/democratize")
+	:doc "most confusing package ever. It adds more examples to help and helpful buffers.
+This is feasible by having package authors have in their repository,
+some file that is structurally easy to parse, that corresponds function names to their examples.
+The parsing and fitting into help buffers is then programmed by this package's author, and
+made available to use in this package.
+
+Since emacs 28, shortdoc is available. Try command `shortdoc-display-group' interactively!
+Shortdocs come in a very easy to parse format, and the description is taken directly from the function's docstring. Try:
+    M-x find-library RET shortdoc RET"
+	:config
+	(democratize-enable-examples-in-helpful)
+	(democratize-enable-examples-in-help)
+	;; ;; COMMENTED OUT 'cuz symlinks already made and docs generated; will run with errors otherwise.
+	;; (make-symbolic-link (expand-file-name "f/README.org" elpaca-repos-directory)
+	;; 										(expand-file-name "f/README.org" democratize--downloads-dir))
+	;; (make-symbolic-link (expand-file-name "s/dev/examples.el" elpaca-repos-directory)
+	;; 										(expand-file-name "s/examples.el" democratize--downloads-dir))
+	;; (make-symbolic-link (expand-file-name "dash/dev/examples.el" elpaca-repos-directory)
+	;; 										(expand-file-name "dash/examples.el" democratize--downloads-dir))
+	;; (make-symbolic-link (expand-file-name "xht/README.org" elpaca-repos-directory)
+	;; 										(expand-file-name "xht/README.org" democratize--downloads-dir))
+	;; ;; call this when any of the above 4 libraries are available
+	;; (democratize-all-libraries)
+	)
+
+;; COMMENTED OUT 'cuz I need to reconfig to make the LSP and stuff work, anyways no benefit for now.
+;; (elpaca-leaf '(nix-ts-mode :host github :repo "remi-gelinas/nix-ts-mode"))
+;; (elpaca-leaf '(ocaml-ts-mode :host github :repo "dmitrig/ocaml-ts-mode"))
+;; (leaf python-ts-mode
+;; 	:doc "remember to install grammar, it will clone and build for u if you press enter and reply yes enough"
+;; 	:config
+;; 	(setq major-mode-remap-alist
+;; 				'((python-mode . python-ts-mode)))
+;; 	)
+;; (elpaca-leaf clojure-ts-mode
+;; 	:config
+;; 	(push '(clojure-mode . clojure-ts-mode) major-mode-remap-alist)
+;; 	(push '(clojurec-mode . clojurec-ts-mode) major-mode-remap-alist)
+;; 	(push '(clojurescript-mode . clojurescript-ts-mode) major-mode-remap-alist))
+
+
+(elpaca-leaf keycast
+	:doc "absolutely fabulous package, by default can use even the tab-bar w/ `keycast-tab-bar-mode' and header-line w/ `keycast-header-line-mode'"
+	:global-minor-mode keycast-tab-bar-mode
+	:config
+	(defun +toggle-keycast()
+		"add to doom-modeline, because by default, it's hard to add lol.
+From https://github.com/seagle0128/doom-modeline/issues/122#issuecomment-1133838869"
+		(interactive)
+		(if (member '("" keycast-mode-line " ") global-mode-string)
+				(progn (setq global-mode-string (delete '("" keycast-mode-line " ") global-mode-string))
+							 (remove-hook 'pre-command-hook 'keycast--update)
+							 (message "Keycast OFF"))
+			(add-to-list 'global-mode-string '("" keycast-mode-line " "))
+			(add-hook 'pre-command-hook 'keycast--update t)
+			(message "Keycast ON")))
+	)
+
+;; ;; COMMENTED OUT 'cuz org-heatmap is a very cool package, but low priority to set up
+;; (use-package org-habit
+;; 	:elpaca t
+;; 	:custom
+;; 	(org-habit-graph-column 1)
+;; 	(org-habit-preceding-days 10)
+;; 	(org-habit-following-days 1)
+;; 	(org-habit-show-habits-only-for-today nil))
+;; (use-package org-heatmap
+;; 	:init
+;; 	(add-to-list 'load-path "/path-to/emacsql/")
+;; 	(add-to-list 'load-path "/path-to/org-heatmap/")
+;; 	(require 'org-heatmap)
+;; 	:after (org)
+;; 	:custom
+;; 	;; (org-agenda-files '("/path-to/org-heatmap/examples/examples.org"))
+;; 	(org-heatmap-db-location "/path-to/org-heatmap/examples/org-heatmap.db")
+;; 	:config
+;; 	(org-heatmap-mode))
+
+
+;; from https://web.archive.org/web/20220605183815/https://with-emacs.com/posts/tips/quit-current-context/
+(defun +keyboard-quit-context ()
+  "Quit current context.
+
+This function is a combination of `keyboard-quit' and
+`keyboard-escape-quit' with some parts omitted and some custom
+behavior added."
+  (interactive)
+  (cond ((region-active-p)
+         ;; Avoid adding the region to the window selection.
+         (setq saved-region-selection nil)
+         (let (select-active-regions)
+           (deactivate-mark)))
+        ((eq last-command 'mode-exited) nil)
+        (current-prefix-arg
+         nil)
+        (defining-kbd-macro
+         (message
+          (substitute-command-keys
+           "Quit is ignored during macro defintion, use \\[kmacro-end-macro] if you want to stop macro definition"))
+         (cancel-kbd-macro-events))
+        ((active-minibuffer-window)
+         (when (get-buffer-window "*Completions*")
+           ;; hide completions first so point stays in active window when
+           ;; outside the minibuffer
+           (minibuffer-hide-completions))
+         (abort-recursive-edit))
+        (t
+         ;; if we got this far just use the default so we don't miss
+         ;; any upstream changes
+         (keyboard-quit))))
+;; (global-set-key [remap keyboard-quit] #'keyboard-quit-context+)

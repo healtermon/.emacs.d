@@ -107,6 +107,10 @@ org-mode
 (equation "\\begin{equation}" p n> r> n "\\end{equation}")
 
 
+tuareg-mode
+
+(beg "begin match " r> " with " n> "| " n> "end")
+
 ;; Local Variables:
 ;; mode: lisp-data
 ;; outline-regexp: "[a-z]"
