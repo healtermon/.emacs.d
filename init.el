@@ -2843,7 +2843,17 @@ variable `project-local-identifier' to be considered a project."
 ;; #emacs@Libera.Chat <thuna`> for youtube specifically, elfeed + youtube-dl + mpv is pretty much all you need
 ;; use this to get rss feed of a youtube channel:
 ;; https://www.youtube.com/feeds/videos.xml?channel_id=<CHANNEL-ID>
-(elpaca-leaf elfeed)
+(elpaca-leaf elfeed
+	:config
+	(setq elfeed-feeds
+				'("https://nullprogram.com/feed/"
+					"https://ambrevar.xyz/atom.xml"
+					"https://guix.gnu.org/feeds/blog.atom"
+					"https://valdyas.org/fading/feed/"
+					;; "https://www.reddit.com/r/emacs/.rss"
+					"https://sachachua.com/blog/category/emacs-news/feed/"
+					"https://explained-from-first-principles.com/feed.xml"))
+	)
 (elpaca-leaf elfeed-tube
 	:after elfeed)
 
