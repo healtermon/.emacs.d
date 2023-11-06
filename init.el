@@ -17,8 +17,9 @@
 ;; SPC l l  narrow-to-region & SPC l j to widen, basically edit only in region
 ;; s = (qwerty)xah-fly-keys RET at point without moving cursor
 ;; SPC i j = open recent file
-;; C-x ( [...] C-x ) define keyboard macro and C-x e to apply it and then eeeee to keep applying it or M-100 C-x e to apply it 100 times in one go.
-
+;; f3, start typing, then f4 to define keyboard macro and f4 to apply it again or M-100 f4 to apply it 100 times in one go.
+;; try subword-mode and superword-mode when coding in java
+;; try pressing "!" in magit-status buffer to run arbitrary git commands
 ;;;; Packages to look at or consider
 ;;;;; Packages to maybe have a look at
 ;; - gamegrid
@@ -201,7 +202,7 @@ The expansion is a string indicating the package has been disabled."
 											 (elpaca--first order))
 										,@body)))))
 
-(leaf
+(leaf leaf
 	:doc
 	"Leaner, Better-Documented & Easier-To-Extend `use-package'. Philosophy is to be clear about everything, base package is minimalistic.
 - list of configs to refer to: https://github.com/conao3/leaf.el/issues/306
@@ -364,7 +365,7 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
  tab-width 2                            ; Tab width of 2 is compact and readable
  c-basic-offset 4                       ; but not in C
  )
-(setq indent-tabs-mode nil) ; Toggle whether indentation can insert TAB characters
+(setq-default indent-tabs-mode nil) ; Toggle whether indentation can insert TAB characters
 
 (blink-cursor-mode -1)
 (leaf paren
@@ -397,6 +398,8 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
 (elpaca-leaf crux
 	:doc "lots of random useful functions from the emacs Prelude 'distro'. It's up here 'cuz of crux-find-user-init-file")
 
+(elpaca-leaf zygospore)
+
 (elpaca-leaf xah-fly-keys
   :require t
   :doc "modal editing, efficient. Prob would have tried meow if I had known it first"
@@ -414,7 +417,7 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
          (cond ((string= major-mode "dired-mode") (dired-find-file))
                (t (forward-char))))
   (defun +xfk-command-mode-g () (interactive)
-         (cond ((string= major-mode "dired-mode") (wdired-change-to-wdired-mode))
+				 (cond ((string= major-mode "dired-mode") (wdired-change-to-wdired-mode))
                (t (xah-delete-current-text-block))))
   :bind
   (global-map
@@ -432,6 +435,7 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
    ("l" . +xfk-command-mode-l)
    ("g" . +xfk-command-mode-g)
    ("8" . er/expand-region)
+	 ("3" . zygospore-toggle-delete-other-windows)
    ("<SPC> 1 i" . crux-find-user-init-file)
    ("<SPC> 1 I" . (lambda () (interactive) (find-file-other-window +user-early-init-file)))
    ("<SPC> 1 t" . (lambda () (interactive) (find-file-other-window (concat +org-roam-dir "20230105103905.org"))))
@@ -445,12 +449,15 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
 	 ("<SPC> 1 d" . (lambda () (interactive) (dired-other-window (concat "~/Downloads/"))))
    ("<SPC> 1 l" . (lambda () (interactive) (find-file-other-window (concat +org-roam-dir "life.org"))))
 	 ("<SPC> 1 e" . (lambda () (interactive) (find-file-other-window (concat +stuff-dir "compro/mitsuharu/emacs-mac/"))))
-	 ("<SPC> 2 c" . (lambda () (interactive) (require 'calfw) (cfw:open-calendar))))
+	 ("<SPC> 2 c" . (lambda () (interactive) (require 'calfw) (cfw:open-calendar)))
+	 ("<SPC> 2 e" . elpaca-manager)
+	 ("<SPC> 2 a" . ascii-table))
   :config
   ;; set-layout required before enabling
   (xah-fly-keys-set-layout (cond ((or +asses +mango) 'colemak-mod-dh)
                                  (t 'qwerty)))
-  (xah-fly-keys 1))
+  (xah-fly-keys 1)
+	)
 
 (elpaca-leaf puni
 	:doc "leverages built-in features for structural editing, warning: not all-encompassing"
@@ -463,8 +470,7 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
 	 ("C-<right>" . puni-slurp-forward)
 	 ("C-<left>" . puni-barf-forward)))
 (elpaca-leaf expand-region ; TODO: test against puni-expand-region and see which I like more, then rebind it in xah-fly-command-map
-	:doc "a better expand-region than xah-fly-keys'"
-	)
+	:doc "a better expand-region than xah-fly-keys'")
 (elpaca-leaf (xah-find :type git :host github :repo "emacsattic/xah-find"))
 
 (elpaca-leaf lispy
@@ -863,8 +869,9 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
 (when +apexless
 	(column-number-mode 1))
 
-;; to get fullscreen immediately when emacs opens, after the frame loads after early-init.el
-(when +apexless (+toggle-undecorated-frame-maximised))
+;; ;; COMMENTED OUT as I want emacs to be resizable and movable on my mac...
+;; ;; to get fullscreen immediately when emacs opens, after the frame loads after early-init.el
+;; (when +apexless (+toggle-undecorated-frame-maximised))
 
 ;;; essential packages for everyone
 
@@ -1095,6 +1102,36 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
   (:after helpful-update      elisp-demos-advice-helpful-update) ;; if you use helpful
   )
 
+
+(elpaca-leaf '(xht :host sourcehut :repo "flandrew/xht")
+	:doc "eXtensive Hash Table library")
+(elpaca-leaf '(democratize :host sourcehut :repo "flandrew/democratize")
+	:doc "most confusing package ever. It adds more examples to help and helpful buffers.
+This is feasible by having package authors have in their repository,
+some file that is structurally easy to parse, that corresponds function names to their examples.
+The parsing and fitting into help buffers is then programmed by this package's author, and
+made available to use in this package.
+
+Since emacs 28, shortdoc is available. Try command `shortdoc-display-group' interactively!
+Shortdocs come in a very easy to parse format, and the description is taken directly from the function's docstring. Try:
+    M-x find-library RET shortdoc RET"
+	:config
+	(democratize-enable-examples-in-helpful)
+	(democratize-enable-examples-in-help)
+	;; ;; COMMENTED OUT 'cuz symlinks already made and docs generated; will run with errors otherwise.
+	;; (make-symbolic-link (expand-file-name "f/README.org" elpaca-repos-directory)
+	;; 										(expand-file-name "f/README.org" democratize--downloads-dir))
+	;; (make-symbolic-link (expand-file-name "s/dev/examples.el" elpaca-repos-directory)
+	;; 										(expand-file-name "s/examples.el" democratize--downloads-dir))
+	;; (make-symbolic-link (expand-file-name "dash/dev/examples.el" elpaca-repos-directory)
+	;; 										(expand-file-name "dash/examples.el" democratize--downloads-dir))
+	;; (make-symbolic-link (expand-file-name "xht/README.org" elpaca-repos-directory)
+	;; 										(expand-file-name "xht/README.org" democratize--downloads-dir))
+	;; ;; call this when any of the above 4 libraries are available
+	;; (democratize-all-libraries)
+	)
+
+
 (elpaca-leaf vundo
   :defer-config
   (setq vundo-glyph-alist vundo-unicode-symbols)
@@ -1112,10 +1149,50 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
 
 (elpaca-leaf  (outli :type git :host github :repo "jdtsmith/outli") 
 	:doc "outline fontification and nesting, org-style tabbing on them, plus more commands, see outli speed-command-help "
-	:bind (outli-mode-map     ; convenience key to get back to containing heading
+	:bind (outli-mode-map			 ; convenience key to get back to containing heading
 				 :package outli
 				 ("C-c C-p" . (lambda () (interactive) (outline-back-to-heading))))
-	:hook ((prog-mode-hook text-mode-hook) . outli-mode))
+	:hook ((prog-mode-hook text-mode-hook) . outli-mode)
+	:config
+	(push '(fennel-mode ";;" ?\; t) outli-heading-config)
+	)
+
+(elpaca-leaf keycast
+	:doc "absolutely fabulous package, by default can use even the tab-bar w/ `keycast-tab-bar-mode' and header-line w/ `keycast-header-line-mode'
+You get to see the latest command u typed and what it's binded to. Great for learning what weird things like trackpad gestures do without \"C-h k <action>\"."
+	:require t ;; 'cuz only the global autoload works. Let's just load it anyways, shouldn't take much time. TODO if u turn off the global minor mode,  benchmark, and if needed make it faster
+	:after doom-modeline
+	:hook (doom-modeline-mode-hook . +keycast-mode)
+	;; :global-minor-mode keycast-tab-bar-mode
+	;; :defer-config
+	:config
+
+	;; from: https://www.const.no/init/
+	;; though I don't know how to make it work with multiple screens...
+	(define-minor-mode +keycast-mode
+    "Show current command and its key binding in the mode line."
+    :global t
+    (if +keycast-mode
+        (progn
+          (add-hook 'pre-command-hook 'keycast--update t)
+          (add-to-list 'global-mode-string '("" keycast-mode-line " ")))
+			(remove-hook 'pre-command-hook 'keycast--update)
+      (setq global-mode-string (remove '("" keycast-mode-line " ") global-mode-string))))
+
+	;; ;; COMMENTED OUT 'cuz the provided keycast-mode-line-mode auto-config doesn't work with doom-modeline
+	;; 	(defun +toggle-keycast()
+	;; 		"add to doom-modeline, because by default, it's hard to add lol.
+	;; From https://github.com/seagle0128/doom-modeline/issues/122#issuecomment-1133838869"
+	;; 		(interactive)
+	;; 		(if (member '("" keycast-mode-line " ") global-mode-string)
+	;; 				(progn (setq global-mode-string (delete '("" keycast-mode-line " ") global-mode-string))
+	;; 							 (remove-hook 'pre-command-hook 'keycast--update)
+	;; 							 (message "Keycast OFF"))
+	;; 			(add-to-list 'global-mode-string '("" keycast-mode-line " "))
+	;; 			(add-hook 'pre-command-hook 'keycast--update t)
+	;; 			(message "Keycast ON")))
+	)
+
 
 ;;; Generally Useful
 (elpaca-leaf reveal-in-folder
@@ -1361,7 +1438,9 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
 										"|" "USELESSED(u)" "TOOLATE(l)" "CANCELLED(c)" "DONE(d)")))
 	(setq org-capture-templates
 				`(("t" "task" entry (file ,+healtermon-gtasks-file)
-					 "* TODO %?\n  SCHEDULED:\n  DEADLINE:\n")))
+					 "* TODO %?\n  SCHEDULED:\n  DEADLINE:\n")
+					())
+				)
 	(setq org-agenda-custom-commands
 				'(("c" "To-dos of Noted Life"
 					 ((tags-todo "+health" ((org-agenda-overriding-header "Health first~!")))
@@ -2534,9 +2613,9 @@ variable `project-local-identifier' to be considered a project."
   :init
   ;; WARNING: THIS CAUSES MODELINE TO FAIL IF PUT AFTER INIT, IDK WHY, MAYBE 'CUZ OF THEME LOADING AFTER after-init-hook
   (custom-set-faces
-   '(mode-line ((t (:height 0.8))))
-   ;; '(mode-line-active ((t ( :height 0.8)))) ; For 29+
-   ;; '(mode-line-inactive ((t ( :height 0.8))))
+   ;; '(mode-line ((t (:height 0.8))))
+   '(mode-line-active ((t ( :height 0.8)))) ; For 29+
+   '(mode-line-inactive ((t ( :height 0.8))))
    ))
 
 
@@ -2632,6 +2711,67 @@ variable `project-local-identifier' to be considered a project."
 
 (elpaca-leaf wordel
 	:doc "wordle, a word-guessing game")
+
+;; Deldo, vibration control: https://www.youtube.com/watch?v=D1sXuHnf_lo
+;; 
+
+(elpaca-leaf selectric-mode
+	:doc "Make your Emacs sound like a proper typewriter (IBM Selectric II).")
+(elpaca zone-nyan)
+(elpaca flames-of-freedom)							; useful to find out how to optimise graphics speed, I suppose. (Read the code.)
+(elpaca-leaf autotetris-mode
+	:doc "since we have no time to play tetris, let emacs play it for you")
+(elpaca-leaf pacmacs
+	:doc "PacMan!")
+
+;; TODO fix it? idk... not important
+(elpaca c-c-combo)
+
+;; TODO make a package out of this?
+(defun animated-self-insert ()
+  (let* ((undo-entry (car buffer-undo-list))
+         (beginning (and (consp undo-entry) (car undo-entry)))
+         (end (and (consp undo-entry) (cdr undo-entry)))
+         (str (when (and (numberp beginning)
+												 (numberp end))
+                (buffer-substring-no-properties beginning end)))
+         (animate-n-steps 3))
+    (when str
+      (delete-region beginning end)
+      (animate-string str (1- (line-number-at-pos)) (current-column)))))
+;; (add-hook 'post-self-insert-hook 'animated-self-insert)
+
+;; TODO fix it? idk... not important
+(elpaca-leaf '(quake-mode :host github :repo "jordonbiondo/quake-mode")
+	:doc "sounds from Unreal Tournament 2004 when you kill lines, so you get triple-kill, ultra-kill sounds. Get it?")
+
+
+(elpaca (highlight-tail :type git :host github :repo "emacsmirror/highlight-tail"))
+(leaf highlight-tail
+	:doc "This minor-mode draws a tail in real time, when you write."
+	:url "https://www.emacswiki.org/emacs/highlight-tail.el"
+	:tag "color" "effect" "highlight" "visual")
+
+;; ref: https://www.emacswiki.org/emacs/CategoryGames
+(elpaca (u-mandelbrot :type git :host github :repo "emacsattic/u-mandelbrot"))
+;; Ref: https://www.masteringemacs.org/article/fun-games-in-emacs
+;; M-x pong, snake, tetris, life, gomoku, dunnet, solitaire (& solitaire-solve if you get stuck), zone, mpuz: multiplication puzzle  (& mpuz-show-solution if you get stuck), blackbox (& to read manual, M-x f blackbox), bubbles, animate-birthday-present, 5x5
+;; Ctrl-u 42 M-x hanoi, 
+
+;; TODO what is this game? most extensible RPG? https://www.nongnu.org/nethack-el/
+(elpaca '(nethack :type git :host github :repo "emacsattic/nethack")
+	:doc "'REQUIRES a copy of nethack with lisp window port', from the code comments...")
+
+
+(elpaca-leaf '(nes :type git :host github :repo "gongo/emacs-nes")
+	:doc "an NES emulator. u need to download nes games to try. It's super slow according to the git README."
+	:url "https://github.com/gongo/emacs-nes")
+
+(elpaca-leaf (tron :repo "https://github.com/killdash9/tron.el")
+	:doc "multiplayer support...")
+(elpaca mines
+	:doc "minesweeper!")
+
 ;;; Graveyard 
 ;; this package.el stuff is just here 'cuz I'll definitely forget the structure of this if ever need be
 ;; ;; This use-package.el code is kept to enable browsing of MELPA packages. It says package-archives is a void variable...
@@ -2693,7 +2833,6 @@ variable `project-local-identifier' to be considered a project."
 ;;  ;; (add-hook 'window-configuration-change-hook  #'image-roll-redisplay 0 t)
 ;;  ;; (add-to-list 'image-mode-new-window-functions 'image-roll-new-window-function)
 ;;  )
-
 
 ;; ;; NO! DON'T DO LITERATE PROGRAMMING WITHOUT LEARNING CLOJURE FIRST ARE YOU TRYING TO KILL YOURSELF?
 ;; (elpaca-leaf async) ;; idk why elpaca says "duplicate items queued", but apparently it's loaded already so whatever
@@ -2941,7 +3080,10 @@ variable `project-local-identifier' to be considered a project."
 (elpaca-leaf (mode-minder :type git :host github :repo "jdtsmith/mode-minder")
 	:doc "used to look at major-mode hierarchy")
 
-(elpaca-leaf lua-mode)
+(elpaca-leaf lua-mode
+	;; if want to use hammerspoon lua with annotations, see this: https://www.hammerspoon.org/Spoons/EmmyLua.html
+	;; I 've already downloaded lua-language-server with homebrew
+	)
 
 (elpaca-leaf go-mode)
 (elpaca-leaf go-snippets
@@ -3524,7 +3666,7 @@ TODAYP is t when the current agenda view is on today."
 				lsp-ui-doc-position 'bottom
 				lsp-ui-doc-max-width 100
 				)
-	(setq lsp-ui-sideline-show-code-actions t)
+	(setq lsp-ui-sideline-show-code-actions nil)
 	(setq lsp-ui-sideline-delay 0.05)
 	
 	(setq lsp-ui-doc-show-with-cursor t)
@@ -3820,7 +3962,7 @@ TODAYP is t when the current agenda view is on today."
 
 
 (elpaca-leaf sicp
-	:doc "info version for SICP"
+	:doc "TeXInfo version of SICP (same format as info manual), via your package manager straight from MELPA!"
 	:require t)
 
 ;; this sets up all ocaml-related stuff already! go read the loaded file for more details.
@@ -3869,7 +4011,7 @@ set sbt:buffer-project-root to nil and try again from the scala file."
 	(defvar sbt:program-options '("-Dsbt.supershell=false"))
 	)
 
-(elpaca-leaf '(ammonite-term-repl :host github :repo "zwild/ammonite-term-repl") )
+(elpaca-leaf (ammonite-term-repl :host github :repo "zwild/ammonite-term-repl") )
 
 
 ;; ELPACA TUTORIAL WITH WEIRD ESOLANG AS EXAMPLE LMAO
@@ -3887,35 +4029,15 @@ set sbt:buffer-project-root to nil and try again from the scala file."
 	:require t)
 ;; (elpaca-process-queues)
 
+;; if you evaluate something like
+;; (elpaca random-name)
+;; it may not give u an error immediately, and fail when processing this order. DO check.
+
+(defun +elpaca-process-queues ()
+	(interactive)
+	(elpaca-process-queues))
 
 
-(elpaca-leaf '(xht :host sourcehut :repo "flandrew/xht")
-	:doc "eXtensive Hash Table library")
-(elpaca-leaf '(democratize :host sourcehut :repo "flandrew/democratize")
-	:doc "most confusing package ever. It adds more examples to help and helpful buffers.
-This is feasible by having package authors have in their repository,
-some file that is structurally easy to parse, that corresponds function names to their examples.
-The parsing and fitting into help buffers is then programmed by this package's author, and
-made available to use in this package.
-
-Since emacs 28, shortdoc is available. Try command `shortdoc-display-group' interactively!
-Shortdocs come in a very easy to parse format, and the description is taken directly from the function's docstring. Try:
-    M-x find-library RET shortdoc RET"
-	:config
-	(democratize-enable-examples-in-helpful)
-	(democratize-enable-examples-in-help)
-	;; ;; COMMENTED OUT 'cuz symlinks already made and docs generated; will run with errors otherwise.
-	;; (make-symbolic-link (expand-file-name "f/README.org" elpaca-repos-directory)
-	;; 										(expand-file-name "f/README.org" democratize--downloads-dir))
-	;; (make-symbolic-link (expand-file-name "s/dev/examples.el" elpaca-repos-directory)
-	;; 										(expand-file-name "s/examples.el" democratize--downloads-dir))
-	;; (make-symbolic-link (expand-file-name "dash/dev/examples.el" elpaca-repos-directory)
-	;; 										(expand-file-name "dash/examples.el" democratize--downloads-dir))
-	;; (make-symbolic-link (expand-file-name "xht/README.org" elpaca-repos-directory)
-	;; 										(expand-file-name "xht/README.org" democratize--downloads-dir))
-	;; ;; call this when any of the above 4 libraries are available
-	;; (democratize-all-libraries)
-	)
 
 ;; COMMENTED OUT 'cuz I need to reconfig to make the LSP and stuff work, anyways no benefit for now.
 ;; (elpaca-leaf '(nix-ts-mode :host github :repo "remi-gelinas/nix-ts-mode"))
@@ -3933,22 +4055,7 @@ Shortdocs come in a very easy to parse format, and the description is taken dire
 ;; 	(push '(clojurescript-mode . clojurescript-ts-mode) major-mode-remap-alist))
 
 
-(elpaca-leaf keycast
-	:doc "absolutely fabulous package, by default can use even the tab-bar w/ `keycast-tab-bar-mode' and header-line w/ `keycast-header-line-mode'"
-	:global-minor-mode keycast-tab-bar-mode
-	:config
-	(defun +toggle-keycast()
-		"add to doom-modeline, because by default, it's hard to add lol.
-From https://github.com/seagle0128/doom-modeline/issues/122#issuecomment-1133838869"
-		(interactive)
-		(if (member '("" keycast-mode-line " ") global-mode-string)
-				(progn (setq global-mode-string (delete '("" keycast-mode-line " ") global-mode-string))
-							 (remove-hook 'pre-command-hook 'keycast--update)
-							 (message "Keycast OFF"))
-			(add-to-list 'global-mode-string '("" keycast-mode-line " "))
-			(add-hook 'pre-command-hook 'keycast--update t)
-			(message "Keycast ON")))
-	)
+
 
 ;; ;; COMMENTED OUT 'cuz org-heatmap is a very cool package, but low priority to set up
 ;; (use-package org-habit
@@ -3972,6 +4079,7 @@ From https://github.com/seagle0128/doom-modeline/issues/122#issuecomment-1133838
 
 
 ;; from https://web.archive.org/web/20220605183815/https://with-emacs.com/posts/tips/quit-current-context/
+
 (defun +keyboard-quit-context ()
   "Quit current context.
 
@@ -4003,3 +4111,73 @@ behavior added."
          ;; any upstream changes
          (keyboard-quit))))
 ;; (global-set-key [remap keyboard-quit] #'keyboard-quit-context+)
+
+
+(elpaca-leaf hyperspace
+	:doc "in between QuickSilver and keyword URLs. Try M-x hyperspace RET wp James Clerk Maxwell")
+
+
+(defun +compile-and-execute-in-vterm ()
+  (interactive)
+  (+execute-in-vterm
+   "cd \"/Users/s/stuff/university/CS2100 Computer Organisation/AY2022_23/Labs/Lab2/\" && gcc -g -o lab2b-modified lab2b-modified.c && ./lab2b-modified"))
+
+
+;; god knows how to fix my life.org file
+;; (setq org-element-use-cache nil)
+
+
+
+(elpaca-leaf mips-mode
+	:doc "for use with spim, as QTspim is too fucked in user interface.
+Doesn't have commands for stepping by n values, nor printing all register values... nope! can't use! no time to make my own, will stick with QTspim.")
+
+
+;; for browsing Common Lisp HyperSpec locally. in slime repl, do (ql:quickload "clhs"), then (clhs:print-emacs-setup-form), and follow instructions.
+;; from https://stackoverflow.com/a/25656974, then just "C-c C-d C-h" when point is over a symbol to quick-lookup
+(load "/Users/s/.quicklisp/clhs-use-local.el" t)
+(define-key global-map (kbd "<f11>") #'+toggle-undecorated-frame-maximised)
+
+(elpaca-leaf (wat-ts-mode :host github :repo "nverno/wat-ts-mode")
+	:require t
+	:config
+	;; wat
+	(add-to-list
+	 'treesit-language-source-alist
+	 '(wat "https://github.com/wasm-lsp/tree-sitter-wasm" nil "wat/src"))
+	;; wast
+	(add-to-list
+	 'treesit-language-source-alist
+	 '(wast "https://github.com/wasm-lsp/tree-sitter-wasm" nil "wast/src"))
+	)
+
+(elpaca-leaf (iota :host sourcehut :repo "mango/iota.el")
+	:doc
+	"Iota is a very simple package that provides an easy way to replace strings in
+   a region with an incrementing count.  This can be useful in a variety of
+   settings for doing things such as creating numbered lists, creating
+   enumerations, and more.  The substrings to match are defined by the variable
+   ‘iota-regexp’ while the functions ‘iota’ and ‘iota-complex’ offer simple- and
+   advanced methods of enumeration.  You probably do not want to use these
+   functions in your emacs-lisp code; they are intended for interactive use.")
+
+;; ;; COMMENTED OUT 'cuz I don't need it, it stays because it's so hard to find anyways; googling "powershell emacs" doesn't surface this
+;; (elpaca-leaf koopa-mode
+;; 	:doc "mode for powershell lol!")
+
+(elpaca-leaf ascii-table
+	:doc "godsend, who needs https://asciitable.com when you have
+ this offline table right in emacs?")
+(elpaca-leaf crystal-mode)
+(elpaca-leaf literate-calc-mode)
+
+;; usage of define-skeleton : https://codeberg.org/uncomfyhalomacro/erudite-macs
+
+
+(elpaca-leaf smalltalk-mode
+	:doc "just for reading smalltalk files")
+
+
+(elpaca-leaf logos)
+
+
