@@ -138,13 +138,13 @@ nil
 
 
 ;; Bootstrap `elpaca.el' package manager
-(defvar elpaca-installer-version 0.5)
+(defvar elpaca-installer-version 0.6)
 (defvar elpaca-directory (expand-file-name "elpaca/" user-emacs-directory))
 (defvar elpaca-builds-directory (expand-file-name "builds/" elpaca-directory))
 (defvar elpaca-repos-directory (expand-file-name "repos/" elpaca-directory))
 (defvar elpaca-order '(elpaca :repo "https://github.com/progfolio/elpaca.git"
                               :ref nil
-                              :files (:defaults (:exclude "extensions"))
+                              :files (:defaults "elpaca-test.el" (:exclude "extensions"))
                               :build (:not elpaca--activate-package)))
 (let* ((repo  (expand-file-name "elpaca/" elpaca-repos-directory))
        (build (expand-file-name "elpaca/" elpaca-builds-directory))
@@ -163,7 +163,7 @@ nil
                  (emacs (concat invocation-directory invocation-name))
                  ((zerop (call-process emacs nil buffer nil "-Q" "-L" "." "--batch"
                                        "--eval" "(byte-recompile-directory \".\" 0 'force)")))
-                 ((require 'elpaca)) 
+                 ((require 'elpaca))
                  ((elpaca-generate-autoloads "elpaca" repo)))
             (progn (message "%s" (buffer-string)) (kill-buffer buffer))
           (error "%s" (with-current-buffer buffer (buffer-string))))
@@ -728,7 +728,7 @@ If you wanna expand use-package macros, if there are no errors in the config, yo
   (load (concat +lisp-dir "random-secrets.el"))
 	)
 
-(defvar +java-home-folder "/opt/homebrew/Cellar/openjdk/20.0.1/libexec/openjdk.jdk/Contents/Home/"  "java home folder, find with this line at command line: mvn --version")
+(defvar +java-home-folder "/opt/homebrew/Cellar/openjdk/21.0.1/libexec/openjdk.jdk/Contents/Home/"  "java home folder, find with this line at command line: mvn --version")
 (setenv "JAVA_HOME" +java-home-folder)
 (defvar +lsp-java-java-path (concat +java-home-folder "bin/java"))
 
@@ -1631,36 +1631,62 @@ Notes:
 
 (elpaca-wait)
 ;;; LaTeX related 
-;; ;; TODO fix this, it doesn't work because "preview" for latex previewing isn't found, which can't be loaded 'cuz the tex stuff isn't found. So fix the tex stuff, maybe reinstall texlive distribution...
-;; (elpaca-leaf xenops
-;; 	:doc "automatic live math preview that gets out of your way"
-;; 	:hook
-;; 	latex-mode-hook
-;; 	LaTeX-mode-hook
-;; 	org-mode-hook
-;; 	:config
-;; 	(setq xenops-reveal-on-entry t)
-;; 	(setq xenops-math-image-scale-factor 1.25))
+;; TODO fix this, it doesn't work because "preview" for latex previewing isn't found, which can't be loaded 'cuz the tex stuff isn't found. So fix the tex stuff, maybe reinstall texlive distribution...
+(elpaca-leaf xenops
+	:doc "automatic live math preview that gets out of your way"
+	:hook
+	latex-mode-hook
+	LaTeX-mode-hook
+	org-mode-hook
+	:config
+	(setq xenops-reveal-on-entry t)
+	(setq xenops-math-image-scale-factor 1.25))
 
 ;; TODO fix this: this shit doesn't work because the directory doesn't even exist anymore. Where is it? Homebrew? Nix? Oh my. No time for this, I don't even use this info manual.
 ;; for tex info. The LaTeX lsp digestif's creator can't live without this
 ;; 						(add-to-list 'Info-directory-list "/usr/local/texlive/2022/texmf-dist/doc/info/"))
 
-(use-package tex
-  :elpaca auctex ;; TODO fix trippy af auctex-tex declaration
-  :mode ("\\.tex\\'" . latex-mode)
-  :config
-  (require 'texmathp) ; Needed for checking whether in math environments. TODO test this lol
-  (setq bibtex-dialect 'biblatex)
-  (setq TeX-auto-save t)
-  (setq TeX-parse-self t)
-  ;; ;; Enable LaTeX math support, maybe don't need this 'cuz of cdlatex
-  ;; (add-hook 'LaTeX-mode-hook #'LaTeX-math-mode)
-  ;; ;; ;; Enable reference mangment
-  ;; (add-hook 'LaTeX-mode-hook #'reftex-mode)
-  (add-hook 'LaTeX-mode-hook 'prettify-symbols-mode) ;; prettify symbols like \alpha \beta
+;; ;; COMMENTED OUT 'cuz the below auctex config from a reddit post kinda works, we'll see...: https://old.reddit.com/r/emacs/comments/17f5yd4/failing_to_load_auctex_when_installed_via_elpaca/
+;; (use-package tex
+;;   :elpaca auctex ;; TODO fix trippy af auctex-tex declaration
+;;   :mode ("\\.tex\\'" . latex-mode)
+;;   :config
+;;   (require 'texmathp) ; Needed for checking whether in math environments. TODO test this lol
+;;   (setq bibtex-dialect 'biblatex)
+;;   (setq TeX-auto-save t)
+;;   (setq TeX-parse-self t)
+;;   ;; ;; Enable LaTeX math support, maybe don't need this 'cuz of cdlatex
+;;   ;; (add-hook 'LaTeX-mode-hook #'LaTeX-math-mode)
+;;   ;; ;; ;; Enable reference mangment
+;;   ;; (add-hook 'LaTeX-mode-hook #'reftex-mode)
+;;   (add-hook 'LaTeX-mode-hook 'prettify-symbols-mode) ;; prettify symbols like \alpha \beta
 
-  )
+;;   )
+
+(defun ded:elpaca-build-dir (p)
+  "Return the elpaca build directory for package symbol p"
+  (-first-item (f-directories elpaca-builds-directory (lambda (dir)
+                                                        (string-match-p (concat "" (symbol-name p) "$") (f-filename dir))))))
+
+(use-package auctex
+  :elpaca (auctex :pre-build (("./autogen.sh")
+                              ("./configure" "--without-texmf-dir" "--with-lispdir=.")
+                              ("make")
+                              ("install-info" "doc/auctex.info" "doc/dir")
+                              ("install-info" "doc/preview-latex.info" "doc/dir")))
+  :mode
+  (("\.tex\'" . TeX-latex-mode)
+   ("\.tex\.erb\'" . TeX-latex-mode)
+   ("\.etx\'" . TeX-latex-mode))
+  :init
+  ;; (add-to-list 'Info-additional-directory-list (f-join (ded:elpaca-build-dir 'auctex) "doc"))
+  (add-hook 'tex-mode-hook (lambda ()
+                             (load "auctex.el")
+                             (setq TeX-command-extra-options "-shell-escape")))
+  :config
+  (setq-default TeX-global-PDF-mode 1)
+  (setq-default preview-scale-function 1.5)
+  (setq TeX-auto-save t TeX-parse-self t default-truncate-lines t TeX-save-query nil TeX-source-correlate-method 'synctex))
 
 ;; it seems installation of auctex with straight is a bit fucked, might need this if i run into problems
 
@@ -1872,11 +1898,11 @@ from https://www.n16f.net/blog/clearing-the-eshell-buffer/"
 	:after esh-mode
 	:global-minor-mode eshell-syntax-highlighting-global-mode ;; Enable in all Eshell buffers.
 	)
-
-(elpaca-leaf eshell-vterm
-	:after esh-mode
-	:config
-	(eshell-vterm-mode))
+;; ;; TODO fix this, elpaca giving error "Warning (leaf): Error in `fish-completion' block.  Error msg: Autoloading file /Users/s/.emacs.d/elpaca/builds/eshell-vterm/eshell-vterm.elc failed to define function eshell-vterm-mode"
+;; (elpaca-leaf eshell-vterm
+;; 	:after esh-mode
+;; 	:config
+;; 	(eshell-vterm-mode))
 
 ;; set shell-mode derivatives' indentation to 2
 (setq sh-basic-offset 2
@@ -2165,9 +2191,9 @@ from https://www.n16f.net/blog/clearing-the-eshell-buffer/"
 
 ;;;; Language Server Protocol(LSP)-related
 ;;;;; Eglot-related
-(elpaca-leaf xref)
-(elpaca-leaf project
-	:defer-config
+(leaf xref)                             ; Not using elpaca ATM
+(leaf project                           ; Not using elpaca ATM
+ 	:defer-config
 	;; from https://christiantietze.de/posts/2022/03/mark-local-project.el-directories/
 	;; make project.el recognise any directory with a .project file to be the project,
 	;; for rapid prototyping. Stolen from karthink's project-x package
@@ -2197,10 +2223,10 @@ variable `project-local-identifier' to be considered a project."
 	(customize-set-variable 'project-find-functions
 													(list #'project-try-vc
 																#'project-local-try-local)))
-(elpaca-leaf eldoc
-	:defer-config
-	(setq eldoc-echo-area-use-multiline-p nil) ; fucking stop using multiline echo area for your documentation, it's a screen-wide annoyance
-	)
+(leaf eldoc                             ; Not using elpaca ATM
+  :defer-config
+  (setq eldoc-echo-area-use-multiline-p nil) ; fucking stop using multiline echo area for your documentation, it's a screen-wide annoyance
+  )
 (elpaca-leaf flymake
 	:doc "Linter. I don't use flycheck 'cuz I haven't found a need to, and some say it's slower than current flymake on large files."
 	:bind
@@ -3181,16 +3207,17 @@ variable `project-local-identifier' to be considered a project."
 (setq calendar-latitude 1.290270)
 (setq calendar-longitude 103.851959)
 
-(elpaca-leaf org-gcal
-	:doc "sync google calendar events"
-	:init
-	(setq org-gcal-down-days 60
-				org-gcal-up-days 300
-				org-gcal-client-id +gclient-id
-				org-gcal-client-secret +gclient-secret
-				org-gcal-file-alist `(("healtermon@gmail.com" .  ,+healtermon-gcal-file)
-															;; ("another-mail@gmail.com" .  "~/more-mail.org")
-															)))
+;; COMMENTED OUT 'cuz shit is stalling elpaca and I don't know what (request-deferred) means for now
+;; (elpaca-leaf org-gcal
+;; 	:doc "sync google calendar events"
+;; 	:init
+;; 	(setq org-gcal-down-days 60
+;; 				org-gcal-up-days 300
+;; 				org-gcal-client-id +gclient-id
+;; 				org-gcal-client-secret +gclient-secret
+;; 				org-gcal-file-alist `(("healtermon@gmail.com" .  ,+healtermon-gcal-file)
+;; 															;; ("another-mail@gmail.com" .  "~/more-mail.org")
+;; 															)))
 
 (elpaca-leaf calfw ;; calendar framework
 	:commands cfw:open-calendar-buffer
@@ -3213,7 +3240,7 @@ variable `project-local-identifier' to be considered a project."
 					 (file +healtermon-gcal-file )
 					 "* %?\n %(cfw:org-capture-day)"))
 
-	
+
 	)
 (elpaca-leaf calfw-org
 	:after calfw
@@ -3612,7 +3639,7 @@ TODAYP is t when the current agenda view is on today."
 		java-mode-hook
 		) . lsp-deferred)
 	(lsp-mode-hook . lsp-enable-which-key-integration)
-	
+
 	:init
 	;; set prefix for lsp-command-keymap (few alternatives - "C-l", "C-c l"), must be set before lsp-mode loads
 	(setq lsp-keymap-prefix "C-c l")
@@ -3628,7 +3655,7 @@ TODAYP is t when the current agenda view is on today."
 	(setq lsp-intelephense-multi-root nil)			; don't scan unnecessary projects
 	(with-eval-after-load 'lsp-intelephense
 		(setf (lsp--client-multi-root (gethash 'iph lsp-clients)) nil))
-	
+
 	;; ;; python-related
 	;; (setq lsp-pyls-plugins-pycodestyle-enabled nil)
 	(setq lsp-pylsp-plugins-pycodestyle-enabled          nil )     
@@ -3668,7 +3695,7 @@ TODAYP is t when the current agenda view is on today."
 				)
 	(setq lsp-ui-sideline-show-code-actions nil)
 	(setq lsp-ui-sideline-delay 0.05)
-	
+
 	(setq lsp-ui-doc-show-with-cursor t)
 	(setq lsp-ui-doc-show-with-mouse t)
 	(setq lsp-ui-sideline-show-diagnostics nil)
